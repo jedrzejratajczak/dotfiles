@@ -124,7 +124,12 @@ run paru -S --needed --noconfirm \
   zsh-theme-powerlevel10k-git \
   zen-browser-bin \
   matugen-bin \
-  awww
+  awww \
+  nilgreeter-bin \
+  nilnotify-bin \
+  nilpower-bin \
+  nilwall-bin \
+  nilwidgets-bin
 
 # --- 4. Stow dotfiles ---
 echo "[4/8] Stowing dotfiles..."
