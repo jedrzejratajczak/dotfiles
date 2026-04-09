@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Outer arc: gap ~45° at ~10:30, arc covers 315° -->
+  <path d="M 45.6,19.7 A 48,48 0 1 1 19.7,45.6"
+        stroke="#e84057" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <!-- Inner arc: gap ~70° at ~4:30 (opposite of outer gap) -->
+  <path d="M 87.6,68.2 A 24,24 0 1 0 68.2,87.6"
+        stroke="#e84057" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <!-- Diagonal line at ~4:30, centered on outer ring -->
+  <line x1="85" y1="85" x2="111" y2="111"
+        stroke="#e84057" stroke-width="8" stroke-linecap="round"/></svg>

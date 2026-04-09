@@ -1,0 +1,50 @@
+[config]
+prefer = "saturation"
+
+[templates.hyprland]
+input_path = "~/.config/matugen/templates/hyprland-colors.conf"
+output_path = "~/.config/hypr/colors.conf"
+
+[templates.waybar]
+input_path = "~/.config/matugen/templates/waybar-colors.css"
+output_path = "~/.config/waybar/colors.css"
+post_hook = "pkill -SIGUSR2 waybar"
+
+[templates.kitty]
+input_path = "~/.config/matugen/templates/kitty-colors.conf"
+output_path = "~/.config/kitty/current-theme.conf"
+post_hook = "kill -SIGUSR1 $(pgrep kitty) 2>/dev/null || true"
+
+[templates.rofi]
+input_path = "~/.config/matugen/templates/rofi-colors.rasi"
+output_path = "~/.config/rofi/colors.rasi"
+
+[templates.swaync]
+input_path = "~/.config/matugen/templates/swaync-colors.css"
+output_path = "~/.config/swaync/colors.css"
+post_hook = "swaync-client -rs 2>/dev/null || true"
+
+[templates.hyprnotify]
+input_path = "~/.config/matugen/templates/hyprnotify-colors"
+output_path = "~/.config/hyprnotify/colors"
+post_hook = "pkill -SIGUSR1 hyprnotify 2>/dev/null || true"
+
+[templates.hyprlock]
+input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
+output_path = "~/.config/hypr/hyprlock-colors.conf"
+
+[templates.wlogout]
+input_path = "~/.config/matugen/templates/wlogout-colors.css"
+output_path = "~/.config/wlogout/colors.css"
+
+[templates.hyprwall]
+input_path = "~/.config/matugen/templates/hyprwall-colors.css"
+output_path = "~/.config/hyprwall/colors.css"
+
+[templates.yazi]
+input_path = "~/.config/matugen/templates/yazi-theme.toml"
+output_path = "~/.config/yazi/theme.toml"
+
+[templates.qt6ct]
+input_path = "~/.config/matugen/templates/qt6ct-colors.conf"
+output_path = "~/.config/qt6ct/colors/material-you.conf"

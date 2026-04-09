@@ -1,0 +1,46 @@
+@import "colors.css";
+@import url("/tmp/wlogout-dynamic.css");
+
+window {
+    background-size: cover;
+    background-position: center;
+    background-color: @bg;
+}
+
+button {
+    font-family: "CaskaydiaCove Nerd Font", monospace;
+    font-size: 14px;
+    color: @fg;
+    background-color: transparent;
+    outline: none;
+    border: none;
+    border-radius: 100px;
+    background-repeat: no-repeat;
+    background-position: center 30%;
+    background-size: 50%;
+    min-width: 150px;
+    min-height: 170px;
+    margin: 0 24px;
+    box-shadow: none;
+    transition: all 200ms ease-in-out;
+}
+
+button:hover,
+button:focus {
+    background-color: transparent;
+    outline: none;
+    border: none;
+    background-size: 60%;
+}
+
+#shutdown {
+    background-image: url("icons/shutdown.svg");
+}
+
+#reboot {
+    background-image: url("icons/reboot.svg");
+}
+
+#lock {
+    background-image: url("icons/lock.svg");
+}

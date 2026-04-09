@@ -1,0 +1,7 @@
+*.swp
+*.swo
+*~
+.cache/
+.zcompdump
+zsh/.config/zsh/.zcompdump
+zsh/.config/zsh/local.zsh

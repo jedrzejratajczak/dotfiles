@@ -1,0 +1,10 @@
+configuration {
+    modes: "drun,run,window,filebrowser";
+    show-icons: true;
+    terminal: "kitty";
+    drun-display-format: "{name}";
+    disable-history: false;
+    sorting-method: "fzf";
+}
+
+@theme "~/.config/rofi/theme.rasi"

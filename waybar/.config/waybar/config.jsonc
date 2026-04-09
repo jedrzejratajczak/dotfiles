@@ -1,0 +1,68 @@
+{
+    "layer": "top",
+    "position": "top",
+    "reload_style_on_change": true,
+    "margin-top": 2,
+    "margin-left": 6,
+    "margin-right": 6,
+    "spacing": 0,
+
+    "modules-left": ["hyprland/workspaces"],
+    "modules-center": ["custom/clock"],
+    "modules-right": ["tray", "custom/sep#0", "pulseaudio", "custom/sep#1", "backlight", "custom/sep#2", "battery", "custom/sep#3", "network"],
+
+    "hyprland/workspaces": {
+        "format": "{id}",
+        "on-click": "activate"
+    },
+
+    "custom/clock": {
+        "exec": "~/.config/waybar/scripts/clock.sh",
+        "interval": 1,
+        "return-type": "json",
+        "tooltip": false
+    },
+
+    "tray": {
+        "icon-size": 14,
+        "spacing": 6,
+        "show-passive-items": true
+    },
+
+    "custom/sep#0": { "format": "|", "tooltip": false },
+    "custom/sep#1": { "format": "|", "tooltip": false },
+    "custom/sep#2": { "format": "|", "tooltip": false },
+    "custom/sep#3": { "format": "|", "tooltip": false },
+
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰝟 muted",
+        "format-icons": {
+            "default": ["󰕿", "󰖀", "󰕾"]
+        },
+        "on-click": "pavucontrol"
+    },
+
+    "backlight": {
+        "format": "{icon} {percent}%",
+        "format-icons": ["󰃞", "󰃟", "󰃠"]
+    },
+
+    "battery": {
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-icons": ["󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+        "states": {
+            "warning": 30,
+            "critical": 15
+        }
+    },
+
+    "network": {
+        "format-wifi": "󰤨 {signalStrength}%",
+        "format-ethernet": "󰈀",
+        "format-disconnected": "󰤭",
+        "tooltip-format-wifi": "{essid}\n{ifname}: {ipaddr}/{cidr}",
+        "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}"
+    }
+}

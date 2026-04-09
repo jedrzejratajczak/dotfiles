@@ -1,0 +1,35 @@
+[user]
+	name = jedrzej.ratajczak
+	email = mrozelek@gmail.com
+
+[core]
+	editor = nvim
+	pager = less
+
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = true
+
+[push]
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+
+[merge]
+	conflictstyle = zdiff3
+
+[rerere]
+	enabled = true
+
+[diff]
+	colorMoved = default
+
+[alias]
+	st = status
+	co = checkout
+	br = branch
+	ci = commit
+	lg = log --oneline --graph --decorate
