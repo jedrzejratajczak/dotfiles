@@ -101,7 +101,8 @@ run sudo pacman -S --needed --noconfirm \
   amd-ucode \
   efibootmgr \
   iwd \
-  wireless_tools
+  wireless_tools \
+  github-cli
 
 # --- 2. AUR helper (paru) ---
 echo "[2/8] Installing paru..."

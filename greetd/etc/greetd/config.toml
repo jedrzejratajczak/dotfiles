@@ -2,5 +2,5 @@
 vt = 1
 
 [default_session]
-command = "hyprgreeter-wrapper"
+command = "nilgreeter-wrapper"
 user = "greeter"
