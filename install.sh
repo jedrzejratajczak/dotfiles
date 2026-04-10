@@ -60,7 +60,6 @@ run sudo pacman -S --needed --noconfirm \
   greetd \
   cage \
   satty \
-  wlogout \
   waybar \
   kitty \
   neovim \
@@ -124,6 +123,7 @@ run paru -S --needed --noconfirm \
   zsh-theme-powerlevel10k-git \
   zen-browser-bin \
   matugen-bin \
+  wlogout \
   awww \
   nilgreeter-bin \
   nilnotify-bin \
