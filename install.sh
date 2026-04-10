@@ -205,9 +205,17 @@ echo "[5/8] Applying system configs..."
 run sudo rm -f /etc/tlp.conf
 run sudo ln -sf ~/.dotfiles/tlp/etc/tlp.conf /etc/tlp.conf
 
-# greetd + tuigreet
+# greetd (must copy, not symlink — greetd has ProtectHome=yes)
 run sudo rm -f /etc/greetd/config.toml
-run sudo ln -sf ~/.dotfiles/greetd/etc/greetd/config.toml /etc/greetd/config.toml
+run sudo cp ~/.dotfiles/greetd/etc/greetd/config.toml /etc/greetd/config.toml
+
+# nilgreeter wrapper
+run sudo tee /usr/local/bin/nilgreeter-wrapper > /dev/null << 'WRAPPER'
+#!/bin/sh
+export XKB_DEFAULT_LAYOUT=pl
+exec cage -s -- /usr/bin/nilgreeter 2>>/tmp/nilgreeter.log
+WRAPPER
+run sudo chmod +x /usr/local/bin/nilgreeter-wrapper
 
 # /etc/issue (ASCII art for tuigreet)
 run sudo rm -f /etc/issue
