@@ -15,8 +15,8 @@ DISK="/dev/nvme0n1"
 ESP="${DISK}p1"
 LUKS_PART="${DISK}p2"
 CRYPT_NAME="root"
-HOSTNAME="arch"
-USERNAME="nilu"
+read -p "Hostname: " HOSTNAME
+read -p "Username: " USERNAME
 TIMEZONE="Europe/Warsaw"
 LOCALE="en_US.UTF-8"
 KEYMAP="pl"
