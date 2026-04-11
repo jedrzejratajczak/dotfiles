@@ -70,7 +70,7 @@ PACKAGES=(
 if [ "$PROFILE" = "laptop" ]; then
   PACKAGES+=(vulkan-radeon sof-firmware tlp)
 elif [ "$PROFILE" = "desktop" ]; then
-  PACKAGES+=(nvidia-open)
+  PACKAGES+=(nvidia-open linux-headers)
 fi
 
 run sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
