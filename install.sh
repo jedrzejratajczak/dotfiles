@@ -79,7 +79,16 @@ run sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
 echo "[2/8] Installing paru..."
 if ! command -v paru &>/dev/null; then
   if ! $DRY_RUN; then
-    git clone https://aur.archlinux.org/paru.git /tmp/paru
+    rm -rf /tmp/paru
+    for attempt in 1 2 3; do
+      echo "  Cloning paru (attempt $attempt/3)..."
+      if git clone https://aur.archlinux.org/paru.git /tmp/paru; then
+        break
+      fi
+      rm -rf /tmp/paru
+      [ "$attempt" -lt 3 ] && sleep 2
+    done
+    [ -d /tmp/paru ] || { echo "Failed to clone paru after 3 attempts" >&2; exit 1; }
     (cd /tmp/paru && makepkg -si --noconfirm)
     rm -rf /tmp/paru
   else
@@ -91,7 +100,7 @@ fi
 echo "[3/8] Installing AUR packages..."
 AUR_PACKAGES=(
   grimblast-git wl-screenrec-git zsh-theme-powerlevel10k-git
-  zen-browser-bin matugen-bin wlogout awww
+  zen-browser-bin matugen-bin wlogout awww-bin
   nilgreeter-bin nilnotify-bin nilpower-bin nilwall-bin nilwidgets-bin
 )
 
