@@ -283,7 +283,6 @@ fi
 
 echo ""
 echo "Remaining manual steps:"
-echo "  1. Add wallpaper to ~/Pictures/Wallpapers/"
-echo "  2. Run 'matugen image <wallpaper-path> -m dark -t scheme-tonal-spot' to generate colors"
-echo "  3. Install Zen Browser extensions: Tridactyl + uBlock Origin (from AMO)"
-echo "  4. Reboot"
+echo "  1. Add wallpaper to ~/Pictures/Wallpapers/ and select it in nilwall"
+echo "  2. Install Zen Browser extensions: Tridactyl + uBlock Origin (from AMO)"
+echo "  3. Reboot"

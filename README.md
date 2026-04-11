@@ -32,16 +32,8 @@ Use `./install.sh -t` for a dry-run that shows what would happen without making 
 
 ## Post-reboot
 
-1. Add a wallpaper to `~/Pictures/Wallpapers/`
-2. Generate color scheme:
-   ```bash
-   matugen image ~/Pictures/Wallpapers/<wallpaper> -m dark -t scheme-tonal-spot
-   ```
-3. Configure Powerlevel10k prompt:
-   ```bash
-   p10k configure
-   ```
-4. (Optional) Create `~/.config/zsh/local.zsh` for machine-specific aliases and variables — this file is gitignored.
+1. Add a wallpaper to `~/Pictures/Wallpapers/` and select it in nilwall — colors are generated automatically.
+2. (Optional) Create `~/.config/zsh/local.zsh` for machine-specific aliases and variables — this file is gitignored.
 
 ## Machine-specific config
 
