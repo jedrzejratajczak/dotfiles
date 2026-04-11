@@ -58,7 +58,7 @@ chmod 700 /mnt/boot
 # --- 5. Base install ---
 echo "[5/10] Installing base system..."
 pacstrap -K /mnt \
-    base linux linux-firmware \
+    base linux linux-headers linux-firmware \
     amd-ucode nvidia-open \
     nano networkmanager \
     cryptsetup sudo git stow base-devel
@@ -144,28 +144,16 @@ chmod +x /mnt/tmp/chroot-setup.sh
 arch-chroot -S /mnt /tmp/chroot-setup.sh
 rm /mnt/tmp/chroot-setup.sh
 
-# --- 8. Dotfiles ---
-echo "[8/10] Installing dotfiles..."
+# --- 8. Clone dotfiles ---
+echo "[8/9] Cloning dotfiles..."
 arch-chroot -S /mnt /bin/bash -c "
     su - $USERNAME -c '
         git clone https://github.com/jedrzejratajczak/dotfiles.git ~/.dotfiles
-        cd ~/.dotfiles
-        ./install.sh
     '
 "
 
-# --- 9. Greeter wrapper ---
-echo "[9/10] Setting up greeter..."
-cat > /mnt/usr/local/bin/nilgreeter-wrapper << 'WRAPPER'
-#!/bin/sh
-export XKB_DEFAULT_LAYOUT=pl
-exec cage -s -- /usr/bin/nilgreeter 2>>/tmp/nilgreeter.log
-WRAPPER
-chmod +x /mnt/usr/local/bin/nilgreeter-wrapper
-cp /mnt/home/$USERNAME/.dotfiles/greetd/etc/greetd/config.toml /mnt/etc/greetd/config.toml
-
-# --- 10. Done ---
-echo "[10/10] Cleaning up..."
+# --- 9. Done ---
+echo "[9/9] Cleaning up..."
 umount -R /mnt
 
 echo ""
@@ -179,9 +167,11 @@ echo "  - BIOS: EXPO enabled for RAM"
 echo "  - BIOS: Secure Boot disabled (for installation)"
 echo ""
 echo "Remove USB and reboot. After first boot:"
-echo "  1. Connect WiFi: nmcli dev wifi connect SSID password PASS"
-echo "  2. Run: cd ~/.dotfiles && git pull && ./install.sh"
-echo "     (select desktop profile, then set up Secure Boot when prompted)"
+echo "  1. Log in, connect ethernet"
+echo "  2. Run: cd ~/.dotfiles && ./install.sh"
+echo "     (select desktop profile, set up Secure Boot when prompted)"
 echo "  3. Reboot into BIOS, enable Secure Boot"
-echo "  4. Run: ./install.sh again (select Secure Boot again to enroll TPM2)"
+echo "  4. Run: cd ~/.dotfiles && ./install.sh (select Secure Boot → TPM2 enrollment)"
 echo "  5. Add wallpaper to ~/Pictures/Wallpapers/ and select in nilwall"
+echo ""
+echo "WiFi will work after install.sh installs the MT7927 DKMS driver."

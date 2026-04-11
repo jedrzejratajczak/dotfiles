@@ -59,7 +59,7 @@ PACKAGES=(
   noto-fonts ttf-cascadia-code-nerd ttf-cascadia-mono-nerd
   ttf-nerd-fonts-symbols ttf-nerd-fonts-symbols-mono woff2-font-awesome
   papirus-icon-theme
-  uwsm qt5-wayland qt6-wayland qt6ct
+  uwsm wpaperd qt5-wayland qt6-wayland qt6ct
   smartmontools htop wget less xdg-utils
   alsa-utils gst-plugin-pipewire libpulse
   linux-firmware amd-ucode efibootmgr
@@ -140,6 +140,7 @@ backup_if_exists ~/.config/qt6ct/qt6ct.conf
 backup_if_exists ~/.config/matugen/config.toml
 backup_if_exists ~/.config/uwsm/env
 backup_if_exists ~/.config/uwsm/env-hyprland
+backup_if_exists ~/.config/wpaperd
 
 if [ -d "$BACKUP_DIR" ]; then
     echo "  Backups saved to $BACKUP_DIR"
@@ -156,11 +157,12 @@ if ! $DRY_RUN; then
     rm -f ~/.config/qt6ct/qt6ct.conf
     rm -rf ~/.config/matugen
     rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
+    rm -rf ~/.config/wpaperd
 fi
 
 STOW_PACKAGES=(
     zsh git kitty hyprland rofi swaync yazi mpv mpd
-    gammastep wlogout waybar gtk qt6ct matugen uwsm awww
+    gammastep wlogout waybar gtk qt6ct matugen uwsm awww wpaperd
 )
 
 for dir in "${STOW_PACKAGES[@]}"; do
