@@ -64,6 +64,7 @@ PACKAGES=(
   alsa-utils gst-plugin-pipewire libpulse
   linux-firmware amd-ucode efibootmgr
   iwd wireless_tools github-cli
+  ufw usbguard
 )
 
 # Profile-specific packages
@@ -222,14 +223,95 @@ fi
 # Boot optimization
 run sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
 
-# --- 6. Systemd services ---
-echo "[6/8] Enabling services..."
+# --- 6. Security hardening ---
+echo "[6/9] Applying security hardening..."
+
+# Firewall (ufw)
+echo "  Configuring firewall..."
+run sudo ufw default deny incoming
+run sudo ufw default allow outgoing
+run sudo ufw --force enable
+
+# Encrypted DNS (DNS-over-TLS via systemd-resolved)
+echo "  Configuring encrypted DNS..."
+run sudo mkdir -p /etc/systemd/resolved.conf.d
+run sudo tee /etc/systemd/resolved.conf.d/dns-over-tls.conf > /dev/null << 'DNS'
+[Resolve]
+DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com
+FallbackDNS=9.9.9.9#dns.quad9.net
+DNSOverTLS=true
+DNSSEC=allow-downgrade
+Domains=~.
+DNS
+run sudo ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+run sudo mkdir -p /etc/NetworkManager/conf.d
+run sudo tee /etc/NetworkManager/conf.d/dns.conf > /dev/null << 'NMDNS'
+[main]
+dns=systemd-resolved
+NMDNS
+
+# Kernel hardening (sysctl)
+echo "  Applying kernel hardening..."
+run sudo tee /etc/sysctl.d/99-hardening.conf > /dev/null << 'SYSCTL'
+# Hide kernel pointers from unprivileged users
+kernel.kptr_restrict = 2
+
+# Restrict dmesg to root
+kernel.dmesg_restrict = 1
+
+# Restrict magic SysRq key to sync + remount-ro + reboot only
+kernel.sysrq = 176
+
+# Harden BPF JIT compiler
+kernel.unprivileged_bpf_disabled = 1
+net.core.bpf_jit_harden = 2
+
+# Prevent core dumps for SUID binaries
+fs.suid_dumpable = 0
+
+# Restrict ptrace to parent processes only
+kernel.yama.ptrace_scope = 2
+
+# Network hardening
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+SYSCTL
+
+# PAM login delay (4 seconds between attempts, brute-force protection)
+echo "  Configuring login delay..."
+if ! grep -q "pam_faildelay" /etc/pam.d/system-login 2>/dev/null; then
+  run sudo sed -i '0,/^auth/{s/^auth/auth       optional   pam_faildelay.so delay=4000000\nauth/}' /etc/pam.d/system-login
+fi
+
+# USBGuard (whitelist current devices, block unknown)
+echo "  Configuring USBGuard..."
+if [ ! -f /etc/usbguard/rules.conf ] || [ ! -s /etc/usbguard/rules.conf ]; then
+  run sudo sh -c 'usbguard generate-policy > /etc/usbguard/rules.conf'
+  echo "  USBGuard policy generated from currently connected devices"
+fi
+# Allow current user to manage USBGuard without root
+if ! grep -q "$USER" /etc/usbguard/usbguard-daemon.conf 2>/dev/null; then
+  run sudo sed -i "s/^IPCAllowedUsers=.*/IPCAllowedUsers=root $USER/" /etc/usbguard/usbguard-daemon.conf
+fi
+
+# --- 7. Systemd services ---
+echo "[7/9] Enabling services..."
 
 # System services
 run sudo systemctl enable greetd
 run sudo systemctl enable NetworkManager
 run sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 run sudo systemctl mask systemd-rfkill.service systemd-rfkill.socket
+run sudo systemctl enable ufw
+run sudo systemctl enable usbguard
+run sudo systemctl enable systemd-resolved
 
 if [ "$PROFILE" = "laptop" ]; then
   run sudo systemctl enable tlp
@@ -238,15 +320,15 @@ fi
 # User services
 run systemctl --user enable mpd
 
-# --- 7. Shell ---
-echo "[7/8] Setting default shell to zsh..."
+# --- 8. Shell ---
+echo "[8/9] Setting default shell to zsh..."
 if [ "$SHELL" != "/usr/bin/zsh" ]; then
   run sudo chsh -s /usr/bin/zsh "$USER"
   echo "  Shell changed to zsh (takes effect on next login)"
 fi
 
-# --- 8. Create directories ---
-echo "[8/8] Creating directories..."
+# --- 9. Create directories ---
+echo "[9/9] Creating directories..."
 run mkdir -p ~/Music ~/Videos ~/Pictures/Wallpapers ~/Pictures/Screenshots
 run mkdir -p ~/.config/mpd/playlists
 run mkdir -p ~/.config/qt6ct/colors
