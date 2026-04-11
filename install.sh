@@ -297,6 +297,31 @@ if [ ! -f /etc/usbguard/rules.conf ] || [ ! -s /etc/usbguard/rules.conf ]; then
   echo "  USBGuard policy generated from currently connected devices"
 fi
 
+# Privacy: hostname leak, MAC randomization, IPv6 privacy
+echo "  Configuring network privacy..."
+run sudo tee /etc/NetworkManager/conf.d/privacy.conf > /dev/null << 'NMPRIVACY'
+[device]
+wifi.scan-rand-mac-address=yes
+
+[connection]
+ethernet.cloned-mac-address=stable
+wifi.cloned-mac-address=stable
+ipv4.dhcp-send-hostname=0
+ipv6.dhcp-send-hostname=0
+ipv6.addr-gen-mode=1
+ipv6.ip6-privacy=2
+ipv6.dhcp-duid=stable-uuid
+NMPRIVACY
+
+# Privacy: disable core dumps
+echo "  Disabling core dumps..."
+run sudo mkdir -p /etc/systemd/coredump.conf.d
+run sudo tee /etc/systemd/coredump.conf.d/disable.conf > /dev/null << 'COREDUMP'
+[Coredump]
+Storage=none
+ProcessSizeMax=0
+COREDUMP
+
 # --- 7. Systemd services ---
 echo "[7/9] Enabling services..."
 
