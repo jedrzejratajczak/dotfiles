@@ -296,10 +296,6 @@ if [ ! -f /etc/usbguard/rules.conf ] || [ ! -s /etc/usbguard/rules.conf ]; then
   run sudo sh -c 'usbguard generate-policy > /etc/usbguard/rules.conf'
   echo "  USBGuard policy generated from currently connected devices"
 fi
-# Allow current user to manage USBGuard without root
-if ! grep -q "$USER" /etc/usbguard/usbguard-daemon.conf 2>/dev/null; then
-  run sudo sed -i "s/^IPCAllowedUsers=.*/IPCAllowedUsers=root $USER/" /etc/usbguard/usbguard-daemon.conf
-fi
 
 # --- 7. Systemd services ---
 echo "[7/9] Enabling services..."
