@@ -21,3 +21,6 @@ export XCURSOR_THEME=default
 
 # Theme
 export GTK_THEME=Adwaita:dark
+
+# XDG directories
+export XDG_SCREENSHOTS_DIR="$HOME/Pictures/Screenshots"
