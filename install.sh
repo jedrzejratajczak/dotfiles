@@ -89,19 +89,17 @@ fi
 
 # --- 3. AUR packages ---
 echo "[3/8] Installing AUR packages..."
-run paru -S --needed --noconfirm \
-  grimblast-git \
-  wl-screenrec-git \
-  zsh-theme-powerlevel10k-git \
-  zen-browser-bin \
-  matugen-bin \
-  wlogout \
-  awww \
-  nilgreeter-bin \
-  nilnotify-bin \
-  nilpower-bin \
-  nilwall-bin \
-  nilwidgets-bin
+AUR_PACKAGES=(
+  grimblast-git wl-screenrec-git zsh-theme-powerlevel10k-git
+  zen-browser-bin matugen-bin wlogout awww
+  nilgreeter-bin nilnotify-bin nilpower-bin nilwall-bin nilwidgets-bin
+)
+
+if [ "$PROFILE" = "desktop" ]; then
+  AUR_PACKAGES+=(mediatek-mt7927-dkms)
+fi
+
+run paru -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 
 # --- 4. Stow dotfiles ---
 echo "[4/8] Stowing dotfiles..."
