@@ -269,20 +269,45 @@ if [[ "$SETUP_SB" == [yY] ]]; then
 
   echo ""
   echo "Secure Boot keys enrolled and boot files signed."
-  echo "Enable Secure Boot in BIOS on next reboot."
-  echo ""
-  echo "After rebooting with Secure Boot enabled, set up TPM2 auto-unlock:"
-  echo "  sudo systemctl enable systemd-cryptenroll"
-  LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null)
-  if [ -n "$LUKS_DEV" ]; then
-    echo "  sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-uuid/$LUKS_DEV"
+
+  # Check if Secure Boot is already active (re-run scenario)
+  if sbctl status 2>/dev/null | grep -q "Secure Boot.*enabled"; then
+    echo ""
+    echo "Secure Boot is active. Set up TPM2 auto-unlock?"
+    echo "  (LUKS will unlock automatically when boot chain is intact)"
+    read -p "Continue? [y/N] " SETUP_TPM
+    if [[ "$SETUP_TPM" == [yY] ]]; then
+      LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null)
+      if [ -n "$LUKS_DEV" ]; then
+        echo "Enrolling TPM2 key (you will be asked for your LUKS password)..."
+        run sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 "/dev/disk/by-uuid/$LUKS_DEV"
+        echo "TPM2 auto-unlock configured."
+      else
+        echo "Could not detect LUKS UUID from /etc/cmdline.d/root.conf"
+        echo "Run manually: sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/<luks-partition>"
+      fi
+    fi
   else
-    echo "  sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/<your-luks-partition>"
+    echo ""
+    echo "Secure Boot is NOT yet active."
+    echo "After this script finishes:"
+    echo "  1. Reboot into BIOS"
+    echo "  2. Enable Secure Boot"
+    echo "  3. Boot into system"
+    echo "  4. Re-run: ./install.sh  (select Secure Boot again to enroll TPM2)"
   fi
 fi
 
 echo ""
-echo "Remaining manual steps:"
+echo "=== Pre-install checklist (do before running this script) ==="
+echo "  - BIOS: Set administrator password"
+echo "  - BIOS: Disable CSM"
+echo "  - BIOS: Enable fTPM (AMD fTPM configuration → Firmware TPM)"
+echo "  - BIOS: Enable EXPO for RAM"
+echo ""
+echo "=== Post-install manual steps ==="
 echo "  1. Add wallpaper to ~/Pictures/Wallpapers/ and select it in nilwall"
 echo "  2. Install Zen Browser extensions: Tridactyl + uBlock Origin (from AMO)"
-echo "  3. Reboot"
+if ! sbctl status 2>/dev/null | grep -q "Secure Boot.*enabled"; then
+  echo "  3. Enable Secure Boot in BIOS, then re-run ./install.sh for TPM2 setup"
+fi
