@@ -2,7 +2,6 @@
 set -eo pipefail
 
 # Dotfiles install script for Arch Linux + Hyprland
-# Framework 13 (AMD Ryzen AI 5 340)
 #
 # Usage: git clone <repo> ~/.dotfiles && cd ~/.dotfiles && ./install.sh
 # Flags: -t  dry-run (show what would happen, change nothing)
@@ -30,78 +29,51 @@ echo "=== Dotfiles installer ==="
 $DRY_RUN && echo "*** DRY-RUN MODE — no changes will be made ***"
 echo ""
 
+# --- Machine profile ---
+echo "Select machine profile:"
+echo "  1) laptop  — Framework 13 (AMD GPU, TLP, sof-firmware)"
+echo "  2) desktop — Desktop (NVIDIA GPU, no TLP)"
+read -p "Choice [1/2]: " PROFILE_CHOICE
+
+case "$PROFILE_CHOICE" in
+    1) PROFILE="laptop" ;;
+    2) PROFILE="desktop" ;;
+    *) echo "Invalid choice" && exit 1 ;;
+esac
+echo "Using profile: $PROFILE"
+echo ""
+
 # --- 1. Packages (official repos) ---
 echo "[1/8] Installing official repo packages..."
-run sudo pacman -S --needed --noconfirm \
-  zsh \
-  stow \
-  rofi \
-  swaync \
-  yazi \
-  mpv \
-  mpd \
-  rmpc \
-  cliphist \
-  wl-clipboard \
-  hyprland \
-  hyprlock \
-  hypridle \
-  hyprpolkitagent \
-  hyprpicker \
-  imagemagick \
-  gammastep \
-  brightnessctl \
-  swayosd \
-  pavucontrol \
-  nwg-look \
-  nwg-displays \
-  bluetui \
-  tlp \
-  greetd \
-  cage \
-  satty \
-  waybar \
-  kitty \
-  neovim \
-  playerctl \
-  grim \
-  slurp \
-  wev \
-  pipewire \
-  pipewire-alsa \
-  pipewire-jack \
-  pipewire-pulse \
-  wireplumber \
-  xdg-desktop-portal-hyprland \
-  xdg-desktop-portal-gtk \
-  zram-generator \
-  noto-fonts \
-  ttf-cascadia-code-nerd \
-  ttf-cascadia-mono-nerd \
-  ttf-nerd-fonts-symbols \
-  ttf-nerd-fonts-symbols-mono \
-  woff2-font-awesome \
-  papirus-icon-theme \
-  uwsm \
-  qt5-wayland \
-  qt6-wayland \
-  qt6ct \
-  vulkan-radeon \
-  smartmontools \
-  htop \
-  wget \
-  less \
-  xdg-utils \
-  alsa-utils \
-  gst-plugin-pipewire \
-  libpulse \
-  sof-firmware \
-  linux-firmware \
-  amd-ucode \
-  efibootmgr \
-  iwd \
-  wireless_tools \
-  github-cli
+
+# Common packages
+PACKAGES=(
+  zsh stow rofi swaync yazi mpv mpd rmpc cliphist wl-clipboard
+  hyprland hyprlock hypridle hyprpolkitagent hyprpicker
+  imagemagick gammastep brightnessctl swayosd pavucontrol
+  nwg-look nwg-displays bluetui greetd cage satty waybar kitty
+  neovim playerctl grim slurp wev
+  pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber
+  xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
+  zram-generator
+  noto-fonts ttf-cascadia-code-nerd ttf-cascadia-mono-nerd
+  ttf-nerd-fonts-symbols ttf-nerd-fonts-symbols-mono woff2-font-awesome
+  papirus-icon-theme
+  uwsm qt5-wayland qt6-wayland qt6ct
+  smartmontools htop wget less xdg-utils
+  alsa-utils gst-plugin-pipewire libpulse
+  linux-firmware amd-ucode efibootmgr
+  iwd wireless_tools github-cli
+)
+
+# Profile-specific packages
+if [ "$PROFILE" = "laptop" ]; then
+  PACKAGES+=(vulkan-radeon sof-firmware tlp)
+elif [ "$PROFILE" = "desktop" ]; then
+  PACKAGES+=(nvidia-open)
+fi
+
+run sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
 
 # --- 2. AUR helper (paru) ---
 echo "[2/8] Installing paru..."
@@ -201,9 +173,11 @@ done
 # --- 5. System configs (symlinks to dotfiles) ---
 echo "[5/8] Applying system configs..."
 
-# TLP
-run sudo rm -f /etc/tlp.conf
-run sudo ln -sf ~/.dotfiles/tlp/etc/tlp.conf /etc/tlp.conf
+# TLP (laptop only)
+if [ "$PROFILE" = "laptop" ]; then
+  run sudo rm -f /etc/tlp.conf
+  run sudo ln -sf ~/.dotfiles/tlp/etc/tlp.conf /etc/tlp.conf
+fi
 
 # greetd (must copy, not symlink — greetd has ProtectHome=yes)
 run sudo rm -f /etc/greetd/config.toml
@@ -244,10 +218,13 @@ echo "[6/8] Enabling services..."
 
 # System services
 run sudo systemctl enable greetd
-run sudo systemctl enable tlp
 run sudo systemctl enable NetworkManager
 run sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 run sudo systemctl mask systemd-rfkill.service systemd-rfkill.socket
+
+if [ "$PROFILE" = "laptop" ]; then
+  run sudo systemctl enable tlp
+fi
 
 # User services
 run systemctl --user enable mpd
@@ -269,7 +246,43 @@ run mkdir -p ~/.local/state/zsh
 echo ""
 echo "=== Installation complete ==="
 echo ""
-echo "Manual steps remaining:"
+
+# --- Optional: Secure Boot + TPM2 ---
+echo "Set up Secure Boot + TPM2 auto-unlock?"
+echo "  (Requires Secure Boot in Setup Mode in BIOS)"
+read -p "Continue? [y/N] " SETUP_SB
+
+if [[ "$SETUP_SB" == [yY] ]]; then
+  echo "Setting up Secure Boot..."
+  run sudo pacman -S --needed --noconfirm sbctl tpm2-tss
+
+  echo "Creating Secure Boot keys..."
+  run sudo sbctl create-keys
+  run sudo sbctl enroll-keys -m
+
+  echo "Signing boot files..."
+  for uki in /boot/EFI/Linux/*.efi; do
+    [ -f "$uki" ] && run sudo sbctl sign -s "$uki"
+  done
+  run sudo sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+  run sudo sbctl verify
+
+  echo ""
+  echo "Secure Boot keys enrolled and boot files signed."
+  echo "Enable Secure Boot in BIOS on next reboot."
+  echo ""
+  echo "After rebooting with Secure Boot enabled, set up TPM2 auto-unlock:"
+  echo "  sudo systemctl enable systemd-cryptenroll"
+  LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null)
+  if [ -n "$LUKS_DEV" ]; then
+    echo "  sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-uuid/$LUKS_DEV"
+  else
+    echo "  sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/<your-luks-partition>"
+  fi
+fi
+
+echo ""
+echo "Remaining manual steps:"
 echo "  1. Add wallpaper to ~/Pictures/Wallpapers/"
 echo "  2. Run 'p10k configure' to set up prompt"
 echo "  3. Run 'matugen image <wallpaper-path> -m dark -t scheme-tonal-spot' to generate colors"
