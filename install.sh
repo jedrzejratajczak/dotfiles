@@ -211,11 +211,11 @@ run sudo ln -sf ~/.dotfiles/issue/etc/issue /etc/issue
 run sudo cp ~/.dotfiles/logind/etc/systemd/logind.conf /etc/systemd/logind.conf
 
 # Greeter wallpaper
-# Greeter wallpaper (default: p0.jpg)
+# Greeter wallpaper (default: p0.webp)
 run sudo mkdir -p /usr/share/backgrounds
-if [ -f ~/.dotfiles/wallpapers/p0.jpg ]; then
-  run sudo cp ~/.dotfiles/wallpapers/p0.jpg /usr/share/backgrounds/greeter.jpg
-  echo "  Greeter wallpaper set from p0.jpg"
+if [ -f ~/.dotfiles/wallpapers/p0.webp ]; then
+  run sudo cp ~/.dotfiles/wallpapers/p0.webp /usr/share/backgrounds/greeter.jpg
+  echo "  Greeter wallpaper set from p0.webp"
 elif ls ~/Pictures/Wallpapers/*.jpg &>/dev/null || ls ~/Pictures/Wallpapers/*.png &>/dev/null; then
   WALLPAPER=$(find ~/Pictures/Wallpapers -type f \( -name "*.jpg" -o -name "*.png" \) | head -1)
   run sudo cp "$WALLPAPER" /usr/share/backgrounds/greeter.jpg
@@ -364,9 +364,9 @@ if [ -d ~/.dotfiles/wallpapers ]; then
   run cp -n ~/.dotfiles/wallpapers/* ~/Pictures/Wallpapers/ 2>/dev/null || true
   echo "  Wallpapers copied to ~/Pictures/Wallpapers/"
 fi
-if [ -f ~/Pictures/Wallpapers/p0.jpg ] && command -v matugen &>/dev/null; then
-  run matugen image ~/Pictures/Wallpapers/p0.jpg -m dark -t scheme-tonal-spot
-  echo "  Default color scheme generated from p0.jpg"
+if [ -f ~/Pictures/Wallpapers/p0.webp ] && command -v matugen &>/dev/null; then
+  run matugen image ~/Pictures/Wallpapers/p0.webp -m dark -t scheme-tonal-spot
+  echo "  Default color scheme generated from p0.webp"
 fi
 
 echo ""
