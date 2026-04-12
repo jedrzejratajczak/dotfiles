@@ -4,13 +4,14 @@ Arch Linux + Hyprland rice with full disk encryption, Secure Boot, and TPM2 auto
 
 ## Fresh install (desktop)
 
-### BIOS setup
+### BIOS setup (ASUS X870E-E)
 
-1. Set administrator password
-2. Disable CSM
-3. Enable fTPM
-4. Enable EXPO for RAM
-5. Disable Secure Boot (temporarily, for installation)
+1. Load Optimized Defaults
+2. Set administrator password
+3. Disable CSM
+4. Enable fTPM (AMD fTPM configuration → Firmware TPM)
+5. Enable EXPO I for RAM
+6. Disable Secure Boot (temporarily, for installation)
 
 ### Base system
 
@@ -49,6 +50,11 @@ After this, LUKS unlocks automatically on boot.
 2. Install Zen Browser extensions (Tridactyl, uBlock Origin)
 
 ## Fresh install (laptop)
+
+### BIOS setup (Framework 13)
+
+1. Set administrator password
+2. Disable Secure Boot (temporarily, for installation)
 
 Requires a manual Arch install with LUKS2, systemd-boot, and UKI (same as desktop but without NVIDIA — use the [Arch Installation Guide](https://wiki.archlinux.org/title/Installation_guide) with [dm-crypt](https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system)).
 
