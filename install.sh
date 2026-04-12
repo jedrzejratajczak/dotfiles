@@ -151,6 +151,8 @@ backup_if_exists ~/.config/matugen/config.toml
 backup_if_exists ~/.config/uwsm/env
 backup_if_exists ~/.config/uwsm/env-hyprland
 backup_if_exists ~/.config/wpaperd
+backup_if_exists ~/.config/systemd/user/nilnotify.service
+backup_if_exists ~/.config/systemd/user/awww.service
 
 if [ -d "$BACKUP_DIR" ]; then
     echo "  Backups saved to $BACKUP_DIR"
@@ -168,11 +170,13 @@ if ! $DRY_RUN; then
     rm -rf ~/.config/matugen
     rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
     rm -rf ~/.config/wpaperd
+    rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.service
+    rm -f ~/.config/systemd/user/hyprnotify.service
 fi
 
 STOW_PACKAGES=(
     zsh git kitty hyprland rofi swaync yazi mpv mpd
-    gammastep wlogout waybar gtk qt6ct matugen uwsm awww wpaperd
+    gammastep wlogout waybar gtk qt6ct matugen uwsm awww wpaperd systemd
 )
 
 for dir in "${STOW_PACKAGES[@]}"; do
@@ -344,6 +348,16 @@ fi
 
 # User services
 run systemctl --user enable mpd
+run systemctl --user enable waybar
+run systemctl --user enable gammastep
+run systemctl --user enable hypridle
+run systemctl --user enable hyprpolkitagent
+run systemctl --user enable cliphist
+run systemctl --user enable pipewire-pulse
+run systemctl --user enable wireplumber
+run systemctl --user daemon-reload
+run systemctl --user enable nilnotify
+run systemctl --user enable awww
 
 # --- 8. Shell ---
 echo "[8/9] Setting default shell to zsh..."
