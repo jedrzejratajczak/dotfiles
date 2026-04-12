@@ -48,22 +48,21 @@ echo "[1/9] Installing official repo packages..."
 
 # Common packages
 PACKAGES=(
-  zsh stow rofi yazi mpv mpd rmpc cliphist wl-clipboard
+  zsh stow rofi yazi mpv mpd cliphist wl-clipboard
   hyprland hyprlock hypridle hyprpolkitagent hyprpicker
   imagemagick gammastep brightnessctl swayosd pavucontrol
-  nwg-look nwg-displays bluetui greetd cage satty waybar kitty
-  neovim playerctl grim slurp wev
+  nwg-look nwg-displays greetd cage satty waybar kitty
+  neovim playerctl grim slurp
   pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber
   xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
   zram-generator
-  noto-fonts ttf-cascadia-code-nerd ttf-cascadia-mono-nerd
-  ttf-nerd-fonts-symbols ttf-nerd-fonts-symbols-mono woff2-font-awesome
+  noto-fonts ttf-cascadia-code-nerd
   papirus-icon-theme
   uwsm qt5-wayland qt6-wayland qt6ct
-  smartmontools htop wget less xdg-utils
+  less xdg-utils
   alsa-utils gst-plugin-pipewire libpulse
   linux-firmware amd-ucode efibootmgr
-  iwd wireless_tools github-cli
+  iwd github-cli
   ufw usbguard awww matugen code
 )
 
