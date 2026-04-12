@@ -59,7 +59,7 @@ PACKAGES=(
   noto-fonts ttf-cascadia-code-nerd ttf-cascadia-mono-nerd
   ttf-nerd-fonts-symbols ttf-nerd-fonts-symbols-mono woff2-font-awesome
   papirus-icon-theme
-  uwsm wpaperd qt5-wayland qt6-wayland qt6ct
+  uwsm qt5-wayland qt6-wayland qt6ct
   smartmontools htop wget less xdg-utils
   alsa-utils gst-plugin-pipewire libpulse
   linux-firmware amd-ucode efibootmgr
@@ -149,7 +149,6 @@ backup_if_exists ~/.config/qt6ct/qt6ct.conf
 backup_if_exists ~/.config/matugen/config.toml
 backup_if_exists ~/.config/uwsm/env
 backup_if_exists ~/.config/uwsm/env-hyprland
-backup_if_exists ~/.config/wpaperd
 backup_if_exists ~/.config/systemd/user/nilnotify.service
 backup_if_exists ~/.config/systemd/user/awww.service
 backup_if_exists ~/.config/kitty
@@ -172,7 +171,6 @@ if ! $DRY_RUN; then
     rm -f ~/.config/qt6ct/qt6ct.conf
     rm -rf ~/.config/matugen
     rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
-    rm -rf ~/.config/wpaperd
     rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.service
     rm -f ~/.config/systemd/user/hyprnotify.service
     rm -rf ~/.config/kitty ~/.config/hypr ~/.config/waybar
@@ -181,7 +179,7 @@ fi
 
 STOW_PACKAGES=(
     zsh git kitty hyprland rofi yazi mpv mpd
-    gammastep wlogout waybar gtk qt6ct matugen uwsm awww wpaperd systemd
+    gammastep wlogout waybar gtk qt6ct matugen uwsm awww systemd
 )
 
 for dir in "${STOW_PACKAGES[@]}"; do

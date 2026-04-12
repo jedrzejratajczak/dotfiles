@@ -1,3 +1,0 @@
-[any]
-path = "~/Pictures/Wallpapers"
-exec = "~/.config/wpaperd/on-change.sh"
