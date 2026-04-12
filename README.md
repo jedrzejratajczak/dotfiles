@@ -33,7 +33,7 @@ cd ~/.dotfiles
 ./install.sh
 ```
 
-Select your machine profile and set up Secure Boot when prompted. Reboot.
+Select `desktop` profile and set up Secure Boot when prompted. Reboot.
 
 ### Secure Boot + TPM2
 
@@ -47,6 +47,20 @@ After this, LUKS unlocks automatically on boot.
 
 1. Add a wallpaper to `~/Pictures/Wallpapers/` and select it in nilwall
 2. Install Zen Browser extensions (Tridactyl, uBlock Origin)
+
+## Fresh install (laptop)
+
+Requires a manual Arch install with LUKS2, systemd-boot, and UKI (same as desktop but without NVIDIA — use the [Arch Installation Guide](https://wiki.archlinux.org/title/Installation_guide) with [dm-crypt](https://wiki.archlinux.org/title/Dm-crypt/Encrypting_an_entire_system)).
+
+After first boot:
+
+```bash
+git clone https://github.com/jedrzejratajczak/dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
+./install.sh
+```
+
+Select `laptop` profile. Secure Boot + TPM2 setup is the same as desktop.
 
 ## Existing system
 
