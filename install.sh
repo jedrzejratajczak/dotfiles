@@ -211,13 +211,17 @@ run sudo ln -sf ~/.dotfiles/issue/etc/issue /etc/issue
 run sudo cp ~/.dotfiles/logind/etc/systemd/logind.conf /etc/systemd/logind.conf
 
 # Greeter wallpaper
+# Greeter wallpaper (default: p0.jpg)
 run sudo mkdir -p /usr/share/backgrounds
-if ls ~/Pictures/Wallpapers/*.jpg &>/dev/null || ls ~/Pictures/Wallpapers/*.png &>/dev/null; then
+if [ -f ~/.dotfiles/wallpapers/p0.jpg ]; then
+  run sudo cp ~/.dotfiles/wallpapers/p0.jpg /usr/share/backgrounds/greeter.jpg
+  echo "  Greeter wallpaper set from p0.jpg"
+elif ls ~/Pictures/Wallpapers/*.jpg &>/dev/null || ls ~/Pictures/Wallpapers/*.png &>/dev/null; then
   WALLPAPER=$(find ~/Pictures/Wallpapers -type f \( -name "*.jpg" -o -name "*.png" \) | head -1)
   run sudo cp "$WALLPAPER" /usr/share/backgrounds/greeter.jpg
   echo "  Greeter wallpaper set from $WALLPAPER"
 else
-  echo "  WARNING: No wallpaper found in ~/Pictures/Wallpapers/ — add one and copy to /usr/share/backgrounds/greeter.jpg"
+  echo "  WARNING: No wallpaper found — add one and copy to /usr/share/backgrounds/greeter.jpg"
 fi
 
 # Boot optimization
@@ -348,12 +352,22 @@ if [ "$SHELL" != "/usr/bin/zsh" ]; then
   echo "  Shell changed to zsh (takes effect on next login)"
 fi
 
-# --- 9. Create directories ---
-echo "[9/9] Creating directories..."
+# --- 9. Create directories and copy wallpapers ---
+echo "[9/9] Setting up directories and wallpapers..."
 run mkdir -p ~/Music ~/Videos ~/Pictures/Wallpapers ~/Pictures/Screenshots
 run mkdir -p ~/.config/mpd/playlists
 run mkdir -p ~/.config/qt6ct/colors
 run mkdir -p ~/.local/state/zsh
+
+# Copy bundled wallpapers and set default
+if [ -d ~/.dotfiles/wallpapers ]; then
+  run cp -n ~/.dotfiles/wallpapers/* ~/Pictures/Wallpapers/ 2>/dev/null || true
+  echo "  Wallpapers copied to ~/Pictures/Wallpapers/"
+fi
+if [ -f ~/Pictures/Wallpapers/p0.jpg ] && command -v matugen &>/dev/null; then
+  run matugen image ~/Pictures/Wallpapers/p0.jpg -m dark -t scheme-tonal-spot
+  echo "  Default color scheme generated from p0.jpg"
+fi
 
 echo ""
 echo "=== Installation complete ==="
@@ -418,8 +432,7 @@ echo "  - BIOS: Enable fTPM (AMD fTPM configuration → Firmware TPM)"
 echo "  - BIOS: Enable EXPO for RAM"
 echo ""
 echo "=== Post-install manual steps ==="
-echo "  1. Add wallpaper to ~/Pictures/Wallpapers/ and select it in nilwall"
-echo "  2. Install Zen Browser extensions: Tridactyl + uBlock Origin (from AMO)"
+echo "  1. Install Zen Browser extensions: Tridactyl + uBlock Origin (from AMO)"
 if ! sbctl status 2>/dev/null | grep -q "Secure Boot.*enabled"; then
   echo "  3. Enable Secure Boot in BIOS, then re-run ./install.sh for TPM2 setup"
 fi

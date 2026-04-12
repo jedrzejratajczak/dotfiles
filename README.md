@@ -46,8 +46,7 @@ After this, LUKS unlocks automatically on boot.
 
 ### Finishing touches
 
-1. Add a wallpaper to `~/Pictures/Wallpapers/` and select it in nilwall
-2. Install Zen Browser extensions (Tridactyl, uBlock Origin)
+1. Install Zen Browser extensions (Tridactyl, uBlock Origin)
 
 ## Fresh install (laptop)
 
