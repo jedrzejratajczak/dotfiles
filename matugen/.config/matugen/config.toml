@@ -19,11 +19,6 @@ post_hook = "kill -SIGUSR1 $(pgrep kitty) 2>/dev/null || true"
 input_path = "~/.config/matugen/templates/rofi-colors.rasi"
 output_path = "~/.config/rofi/colors.rasi"
 
-[templates.swaync]
-input_path = "~/.config/matugen/templates/swaync-colors.css"
-output_path = "~/.config/swaync/colors.css"
-post_hook = "swaync-client -rs 2>/dev/null || true"
-
 [templates.nilnotify]
 input_path = "~/.config/matugen/templates/nilnotify-colors"
 output_path = "~/.config/nilnotify/colors"

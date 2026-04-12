@@ -48,7 +48,7 @@ echo "[1/9] Installing official repo packages..."
 
 # Common packages
 PACKAGES=(
-  zsh stow rofi swaync yazi mpv mpd rmpc cliphist wl-clipboard
+  zsh stow rofi yazi mpv mpd rmpc cliphist wl-clipboard
   hyprland hyprlock hypridle hyprpolkitagent hyprpicker
   imagemagick gammastep brightnessctl swayosd pavucontrol
   nwg-look nwg-displays bluetui greetd cage satty waybar kitty
@@ -64,7 +64,7 @@ PACKAGES=(
   alsa-utils gst-plugin-pipewire libpulse
   linux-firmware amd-ucode efibootmgr
   iwd wireless_tools github-cli
-  ufw usbguard awww matugen
+  ufw usbguard awww matugen code
 )
 
 # Profile-specific packages
@@ -139,7 +139,6 @@ backup_if_exists ~/.config/zsh/.zprofile
 backup_if_exists ~/.config/zsh/.p10k.zsh
 backup_if_exists ~/.gitconfig
 backup_if_exists ~/.config/rofi
-backup_if_exists ~/.config/swaync
 backup_if_exists ~/.config/yazi
 backup_if_exists ~/.config/mpv
 backup_if_exists ~/.config/gammastep
@@ -166,7 +165,7 @@ fi
 if ! $DRY_RUN; then
     rm -f ~/.zshenv ~/.gitconfig
     rm -f ~/.config/zsh/.zshrc ~/.config/zsh/.zprofile ~/.config/zsh/.p10k.zsh
-    rm -rf ~/.config/rofi ~/.config/swaync ~/.config/yazi ~/.config/mpv
+    rm -rf ~/.config/rofi ~/.config/yazi ~/.config/mpv
     rm -rf ~/.config/gammastep ~/.config/wlogout
     rm -f ~/.config/awww/set-wallpaper.sh
     rm -f ~/.config/gtk-3.0/settings.ini
@@ -181,7 +180,7 @@ if ! $DRY_RUN; then
 fi
 
 STOW_PACKAGES=(
-    zsh git kitty hyprland rofi swaync yazi mpv mpd
+    zsh git kitty hyprland rofi yazi mpv mpd
     gammastep wlogout waybar gtk qt6ct matugen uwsm awww wpaperd systemd
 )
 
