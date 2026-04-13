@@ -5,3 +5,6 @@
 .zcompdump
 zsh/.config/zsh/.zcompdump
 zsh/.config/zsh/local.zsh
+hyprland/.config/hypr/monitors.conf
+hyprland/.config/hypr/colors.conf
+hyprland/.config/hypr/hyprlock-colors.conf

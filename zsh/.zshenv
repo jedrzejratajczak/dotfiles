@@ -1,3 +1,6 @@
-# The only zsh file in $HOME — sets ZDOTDIR for everything else
-export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
-export XDG_SCREENSHOTS_DIR="$HOME/Pictures/Screenshots"
+# The only zsh file in $HOME — sets XDG dirs and ZDOTDIR for everything else
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_DATA_HOME="$HOME/.local/share"
+export XDG_STATE_HOME="$HOME/.local/state"
+export XDG_CACHE_HOME="$HOME/.cache"
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"

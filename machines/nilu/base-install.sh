@@ -32,31 +32,31 @@ read -p "Continue? [y/N] " confirm
 [[ "$confirm" == [yY] ]] || exit 1
 
 # --- 1. Partitioning ---
-echo "[1/10] Partitioning..."
+echo "[1/9] Partitioning..."
 sgdisk --zap-all "$DISK"
 sgdisk -n 1:0:+1G -t 1:ef00 "$DISK"
 sgdisk -n 2:0:0 -t 2:8309 "$DISK"
 
 # --- 2. Encryption ---
-echo "[2/10] Setting up LUKS2 encryption..."
+echo "[2/9] Setting up LUKS2 encryption..."
 echo "Enter disk encryption password:"
 cryptsetup luksFormat "$LUKS_PART"
 echo "Re-enter password to open:"
 cryptsetup open "$LUKS_PART" "$CRYPT_NAME"
 
 # --- 3. Formatting ---
-echo "[3/10] Formatting..."
+echo "[3/9] Formatting..."
 mkfs.ext4 -q "/dev/mapper/$CRYPT_NAME"
 mkfs.fat -F 32 "$ESP"
 
 # --- 4. Mounting ---
-echo "[4/10] Mounting..."
+echo "[4/9] Mounting..."
 mount "/dev/mapper/$CRYPT_NAME" /mnt
 mount --mkdir "$ESP" /mnt/boot
 chmod 700 /mnt/boot
 
 # --- 5. Base install ---
-echo "[5/10] Installing base system..."
+echo "[5/9] Installing base system..."
 pacstrap -K /mnt \
     base linux linux-headers linux-firmware \
     amd-ucode nvidia-open \
@@ -64,11 +64,11 @@ pacstrap -K /mnt \
     cryptsetup sudo git stow base-devel
 
 # --- 6. Fstab ---
-echo "[6/10] Generating fstab..."
+echo "[6/9] Generating fstab..."
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # --- 7. System configuration (in chroot) ---
-echo "[7/10] Configuring system..."
+echo "[7/9] Configuring system..."
 LUKS_UUID=$(blkid -s UUID -o value "$LUKS_PART")
 
 cat > /mnt/tmp/chroot-setup.sh << CHROOT

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # Dotfiles install script for Arch Linux + Hyprland
 #
@@ -33,9 +33,9 @@ echo ""
 echo "Select machine profile:"
 echo "  1) laptop  — Framework 13 (AMD GPU, TLP, sof-firmware)"
 echo "  2) desktop — Desktop (NVIDIA GPU, no TLP)"
-read -p "Choice [1/2]: " PROFILE_CHOICE
+read -p "Choice [1/2]: " PROFILE_CHOICE || true
 
-case "$PROFILE_CHOICE" in
+case "${PROFILE_CHOICE:-}" in
     1) PROFILE="laptop" ;;
     2) PROFILE="desktop" ;;
     *) echo "Invalid choice" && exit 1 ;;
@@ -62,7 +62,7 @@ PACKAGES=(
   less xdg-utils
   alsa-utils gst-plugin-pipewire libpulse
   linux-firmware amd-ucode efibootmgr
-  iwd github-cli
+  github-cli
   ufw usbguard awww matugen code
 )
 
@@ -144,6 +144,7 @@ backup_if_exists ~/.config/gammastep
 backup_if_exists ~/.config/wlogout
 backup_if_exists ~/.config/awww/set-wallpaper.sh
 backup_if_exists ~/.config/gtk-3.0/settings.ini
+backup_if_exists ~/.config/gtk-4.0/settings.ini
 backup_if_exists ~/.config/qt6ct/qt6ct.conf
 backup_if_exists ~/.config/matugen/config.toml
 backup_if_exists ~/.config/uwsm/env
@@ -166,12 +167,11 @@ if ! $DRY_RUN; then
     rm -rf ~/.config/rofi ~/.config/yazi ~/.config/mpv
     rm -rf ~/.config/gammastep ~/.config/wlogout
     rm -f ~/.config/awww/set-wallpaper.sh
-    rm -f ~/.config/gtk-3.0/settings.ini
+    rm -f ~/.config/gtk-3.0/settings.ini ~/.config/gtk-4.0/settings.ini
     rm -f ~/.config/qt6ct/qt6ct.conf
     rm -rf ~/.config/matugen
     rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
     rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.service
-    rm -f ~/.config/systemd/user/hyprnotify.service
     rm -rf ~/.config/kitty ~/.config/hypr ~/.config/waybar
     rm -f ~/.config/mpd/mpd.conf
 fi
@@ -192,7 +192,7 @@ echo "[5/9] Applying system configs..."
 # TLP (laptop only)
 if [ "$PROFILE" = "laptop" ]; then
   run sudo rm -f /etc/tlp.conf
-  run sudo ln -sf ~/.dotfiles/tlp/etc/tlp.conf /etc/tlp.conf
+  run sudo ln -sf "$HOME/.dotfiles/tlp/etc/tlp.conf" /etc/tlp.conf
 fi
 
 # greetd (must copy, not symlink — greetd has ProtectHome=yes)
@@ -207,31 +207,30 @@ exec cage -s -- /usr/bin/nilgreeter 2>>/tmp/nilgreeter.log
 WRAPPER
 run sudo chmod +x /usr/local/bin/nilgreeter-wrapper
 
-# /etc/issue (ASCII art for tuigreet)
+# /etc/issue
 run sudo rm -f /etc/issue
-run sudo ln -sf ~/.dotfiles/issue/etc/issue /etc/issue
+run sudo ln -sf "$HOME/.dotfiles/issue/etc/issue" /etc/issue
 
-# logind (power button config)
-# NOTE: must copy, not symlink — systemd-logind has ProtectHome=yes
-# and cannot follow symlinks into /home/
-run sudo cp ~/.dotfiles/logind/etc/systemd/logind.conf /etc/systemd/logind.conf
+# logind (power button config, drop-in)
+run sudo mkdir -p /etc/systemd/logind.conf.d
+run sudo cp "$HOME/.dotfiles/logind/etc/systemd/logind.conf.d/power-key.conf" /etc/systemd/logind.conf.d/power-key.conf
 
-# Greeter wallpaper
-# Greeter wallpaper (default: p0.webp)
-run sudo mkdir -p /usr/share/backgrounds
-if [ -f ~/.dotfiles/wallpapers/p0.webp ]; then
-  run sudo cp ~/.dotfiles/wallpapers/p0.webp /usr/share/backgrounds/greeter.jpg
-  echo "  Greeter wallpaper set from p0.webp"
-elif ls ~/Pictures/Wallpapers/*.jpg &>/dev/null || ls ~/Pictures/Wallpapers/*.png &>/dev/null; then
-  WALLPAPER=$(find ~/Pictures/Wallpapers -type f \( -name "*.jpg" -o -name "*.png" \) | head -1)
-  run sudo cp "$WALLPAPER" /usr/share/backgrounds/greeter.jpg
-  echo "  Greeter wallpaper set from $WALLPAPER"
+# Greeter wallpaper (nilgreeter reads /usr/share/nilgreeter/background.gif)
+run sudo mkdir -p /usr/share/nilgreeter
+if [ -f ~/.dotfiles/wallpapers/waterfall.gif ]; then
+  run sudo cp ~/.dotfiles/wallpapers/waterfall.gif /usr/share/nilgreeter/background.gif
+  echo "  Greeter wallpaper set from waterfall.gif"
+elif [ -f ~/.dotfiles/wallpapers/p0.webp ]; then
+  run sudo cp ~/.dotfiles/wallpapers/p0.webp /usr/share/nilgreeter/background.gif
+  echo "  Greeter wallpaper set from p0.webp (static fallback)"
 else
-  echo "  WARNING: No wallpaper found — add one and copy to /usr/share/backgrounds/greeter.jpg"
+  echo "  WARNING: No wallpaper found — copy a GIF to /usr/share/nilgreeter/background.gif"
 fi
 
 # Boot optimization
-run sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+if [ -f /boot/loader/loader.conf ]; then
+  run sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+fi
 
 # --- 6. Security hardening ---
 echo "[6/9] Applying security hardening..."
@@ -348,18 +347,7 @@ if [ "$PROFILE" = "laptop" ]; then
   run sudo systemctl enable tlp
 fi
 
-# User services
-run systemctl --user enable mpd
-run systemctl --user enable waybar
-run systemctl --user enable gammastep
-run systemctl --user enable hypridle
-run systemctl --user enable hyprpolkitagent
-run systemctl --user enable cliphist
-run systemctl --user enable pipewire-pulse
-run systemctl --user enable wireplumber
-run systemctl --user daemon-reload
-run systemctl --user enable nilnotify
-run systemctl --user enable awww
+# User services are enabled on first login via .zprofile
 
 # --- 8. Shell ---
 echo "[8/9] Setting default shell to zsh..."
@@ -374,6 +362,18 @@ run mkdir -p ~/Music ~/Videos ~/Pictures/Wallpapers ~/Pictures/Screenshots
 run mkdir -p ~/.config/mpd/playlists
 run mkdir -p ~/.config/qt6ct/colors
 run mkdir -p ~/.local/state/zsh
+
+# Fix hardcoded paths in qt6ct config
+if [ -f ~/.config/qt6ct/qt6ct.conf ]; then
+  run sed -i "s|color_scheme_path=.*|color_scheme_path=$HOME/.config/qt6ct/colors/material-you.conf|" ~/.config/qt6ct/qt6ct.conf
+fi
+
+# Configure zram
+run sudo tee /etc/systemd/zram-generator.conf > /dev/null << 'ZRAM'
+[zram0]
+zram-size = ram / 2
+compression-algorithm = zstd
+ZRAM
 
 # Create monitors.conf if missing (machine-specific, not tracked in git)
 if [ ! -f ~/.config/hypr/monitors.conf ]; then
@@ -404,9 +404,9 @@ echo ""
 # --- Optional: Secure Boot + TPM2 ---
 echo "Set up Secure Boot + TPM2 auto-unlock?"
 echo "  (Requires Secure Boot in Setup Mode in BIOS)"
-read -p "Continue? [y/N] " SETUP_SB
+read -p "Continue? [y/N] " SETUP_SB || true
 
-if [[ "$SETUP_SB" == [yY] ]]; then
+if [[ "${SETUP_SB:-}" == [yY] ]]; then
   echo "Setting up Secure Boot..."
   run sudo pacman -S --needed --noconfirm sbctl tpm2-tss
 
@@ -429,9 +429,9 @@ if [[ "$SETUP_SB" == [yY] ]]; then
     echo ""
     echo "Secure Boot is active. Set up TPM2 auto-unlock?"
     echo "  (LUKS will unlock automatically when boot chain is intact)"
-    read -p "Continue? [y/N] " SETUP_TPM
-    if [[ "$SETUP_TPM" == [yY] ]]; then
-      LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null)
+    read -p "Continue? [y/N] " SETUP_TPM || true
+    if [[ "${SETUP_TPM:-}" == [yY] ]]; then
+      LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null || true)
       if [ -n "$LUKS_DEV" ]; then
         echo "Enrolling TPM2 key (you will be asked for your LUKS password)..."
         run sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 "/dev/disk/by-uuid/$LUKS_DEV"
