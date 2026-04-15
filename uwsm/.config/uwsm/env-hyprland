@@ -2,3 +2,4 @@
 # Only sourced when running Hyprland via UWSM
 
 export HYPRCURSOR_SIZE=24
+export HYPRCURSOR_THEME=Adwaita

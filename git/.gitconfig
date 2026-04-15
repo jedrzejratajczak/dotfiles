@@ -4,7 +4,11 @@
 
 [core]
 	editor = nvim
-	pager = less
+	pager = delta
+
+[delta]
+	line-numbers = true
+	syntax-theme = base16
 
 [init]
 	defaultBranch = main

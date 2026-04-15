@@ -1,7 +1,7 @@
 # Enable user services on first login (needs running user systemd instance)
 if [[ ! -f "$XDG_STATE_HOME/zsh/.services-enabled" ]]; then
     systemctl --user daemon-reload
-    systemctl --user enable mpd waybar gammastep hypridle hyprpolkitagent cliphist pipewire-pulse wireplumber nilnotify awww
+    systemctl --user enable waybar hypridle hyprpolkitagent pipewire pipewire-pulse wireplumber nilnotify awww
     mkdir -p "$XDG_STATE_HOME/zsh"
     touch "$XDG_STATE_HOME/zsh/.services-enabled"
 fi

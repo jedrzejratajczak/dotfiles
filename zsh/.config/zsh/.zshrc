@@ -28,6 +28,15 @@ zinit light zsh-users/zsh-completions
 zinit ice wait"0c" lucid atinit"zicompinit; zicdreplay"
 zinit light zsh-users/zsh-syntax-highlighting
 
+zinit ice wait"0d" lucid
+zinit snippet /usr/share/fzf/key-bindings.zsh
+
+zinit ice wait"0d" lucid
+zinit snippet /usr/share/fzf/completion.zsh
+
+zinit ice wait"0e" lucid
+zinit light Aloxaf/fzf-tab
+
 # --- History (XDG-compliant) ---
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 [[ -d ${HISTFILE:h} ]] || mkdir -p ${HISTFILE:h}
@@ -44,12 +53,12 @@ bindkey '^[[B' history-search-forward
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 
 # --- Aliases ---
-alias ls='ls --color=auto'
-alias ll='ls -lah'
+alias ls='eza --icons'
+alias ll='eza -lah --icons'
+alias cat='bat --plain --paging=never'
 alias grep='grep --color=auto'
 alias v='nvim'
 alias y='yazi'
-alias clauded='claude --dangerously-skip-permissions'
 
 # --- Path ---
 typeset -U path

@@ -1,0 +1,1 @@
+- [ ] Add notifications for blocked USB devices (USBGuard events → nilnotify)

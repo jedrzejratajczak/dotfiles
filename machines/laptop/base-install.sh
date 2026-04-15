@@ -1,13 +1,12 @@
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
-# Base install script for the desktop machine (nilu)
-# Hardware: Ryzen 7 9800X3D, RTX 5090, 64GB RAM
+# Base install script for the laptop machine
 # Disk:     Single NVMe → LUKS2 + ext4, no swap
 # Boot:     systemd-boot + UKI + sd-encrypt
 #
-# Usage: Boot Arch ISO, connect to internet, then:
-#   curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/nilu/base-install.sh
+# Usage: Boot Arch ISO, connect to WiFi, then:
+#   curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/laptop/base-install.sh
 #   chmod +x base-install.sh
 #   ./base-install.sh
 
@@ -15,13 +14,13 @@ DISK="/dev/nvme0n1"
 ESP="${DISK}p1"
 LUKS_PART="${DISK}p2"
 CRYPT_NAME="root"
-read -p "Hostname: " HOSTNAME
-read -p "Username: " USERNAME
+HOSTNAME="arch"
+USERNAME="nil"
 TIMEZONE="Europe/Warsaw"
 LOCALE="en_US.UTF-8"
 KEYMAP="pl"
 
-echo "=== Arch Linux base install (nilu) ==="
+echo "=== Arch Linux base install (laptop) ==="
 echo ""
 echo "Disk:     $DISK"
 echo "Hostname: $HOSTNAME"
@@ -59,7 +58,7 @@ chmod 700 /mnt/boot
 echo "[5/9] Installing base system..."
 pacstrap -K /mnt \
     base linux linux-headers linux-firmware \
-    amd-ucode nvidia-open \
+    amd-ucode sof-firmware \
     nano networkmanager \
     cryptsetup sudo git stow base-devel
 
@@ -73,7 +72,7 @@ LUKS_UUID=$(blkid -s UUID -o value "$LUKS_PART")
 
 cat > /mnt/tmp/chroot-setup.sh << CHROOT
 #!/bin/bash
-set -eo pipefail
+set -euo pipefail
 
 # Timezone
 ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
@@ -90,7 +89,7 @@ echo "KEYMAP=$KEYMAP" > /etc/vconsole.conf
 echo "$HOSTNAME" > /etc/hostname
 
 # mkinitcpio
-sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
+sed -i 's/^MODULES=.*/MODULES=(amdgpu)/' /etc/mkinitcpio.conf
 sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf keyboard sd-vconsole block sd-encrypt filesystems fsck)/' /etc/mkinitcpio.conf
 
 # Kernel command line for UKI
@@ -159,19 +158,8 @@ umount -R /mnt
 echo ""
 echo "=== Installation complete ==="
 echo ""
-echo "=== Pre-install checklist (should already be done) ==="
-echo "  - BIOS: Administrator password set"
-echo "  - BIOS: CSM disabled"
-echo "  - BIOS: fTPM enabled (Firmware TPM)"
-echo "  - BIOS: EXPO enabled for RAM"
-echo "  - BIOS: Secure Boot disabled (for installation)"
-echo ""
 echo "Remove USB and reboot. After first boot:"
-echo "  1. Log in, connect ethernet"
-echo "  2. Run: cd ~/.dotfiles && ./install.sh"
-echo "     (select desktop profile, set up Secure Boot when prompted)"
+echo "  1. Log in, connect to WiFi: nmcli device wifi connect <SSID> password <pass>"
+echo "  2. cd ~/.dotfiles && ./install.sh"
 echo "  3. Reboot into BIOS, enable Secure Boot"
-echo "  4. Run: cd ~/.dotfiles && ./install.sh (select Secure Boot → TPM2 enrollment)"
-echo "  5. Add wallpaper to ~/Pictures/Wallpapers/ and select in nilwall"
-echo ""
-echo "WiFi will work after install.sh installs the MT7927 DKMS driver."
+echo "  4. cd ~/.dotfiles && ./install.sh  (enrolls TPM2 automatically)"
