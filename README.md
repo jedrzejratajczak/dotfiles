@@ -1,25 +1,16 @@
-# dotfiles
+# Arch Linux + Hyprland dotfiles
 
-Arch Linux + Hyprland with LUKS2, Secure Boot (sbctl), TPM2 auto-unlock with PIN.
+LUKS2 full-disk encryption, Secure Boot (sbctl-managed keys), TPM2 auto-unlock with PIN, ufw, USBGuard, DNS-over-TLS, kernel hardening (kptr/dmesg/bpf/ptrace), DMA protection (IOMMU).
 
-## Fresh install
+## Install
 
 ### 1. BIOS
 
 - Set Supervisor Password
 - Secure Boot: **Disabled**
 - USB Boot: **Enabled**
-- Network Stack: **Disabled**
-- (Desktop only) Disable CSM, enable fTPM, enable EXPO
 
-### 2. Boot Arch ISO, connect to network
-
-```bash
-loadkeys pl
-timedatectl set-ntp true
-```
-
-Wi-Fi:
+### 2. Connect to Wi-Fi
 
 ```bash
 iwctl
@@ -31,19 +22,8 @@ ping -c 3 archlinux.org
 
 ### 3. Base install
 
-Desktop:
-
 ```bash
-curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/desktop/base-install.sh
-```
-
-Laptop:
-
-```bash
-curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/laptop/base-install.sh
-```
-
-```bash
+curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/base-install.sh
 chmod +x base-install.sh
 ./base-install.sh
 poweroff
@@ -86,30 +66,12 @@ Enter LUKS password, then set a TPM PIN.
 warp-cli registration new && warp-cli connect
 ```
 
-## Verify
-
-```bash
-bootctl status | grep -i "secure boot"
-sudo sbctl status && sudo sbctl verify
-sudo systemd-cryptenroll /dev/nvme0n1p2
-sudo ufw status verbose
-systemctl is-active usbguard
-resolvectl status | grep -i "DNS over TLS"
-```
-
 ## After BIOS/firmware update
 
 PCR values change and TPM unlock fails. Boot with LUKS password, then:
 
 ```bash
 cd ~/.dotfiles && ./tpm-reenroll.sh
-```
-
-## Existing system
-
-```bash
-git clone https://github.com/jedrzejratajczak/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles && ./install.sh
 ```
 
 ## Machine-specific

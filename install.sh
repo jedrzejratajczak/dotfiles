@@ -96,7 +96,48 @@ flatpak install --noninteractive flathub io.gitlab.librewolf-community
 echo "[4/9] Stowing dotfiles..."
 cd ~/.dotfiles || { echo "Cannot cd to ~/.dotfiles" >&2; exit 1; }
 
-# Backup existing configs before stow overwrites them
+STOW_PACKAGES=(
+    zsh git kitty hyprland rofi yazi mpv
+    waybar gtk matugen uwsm awww systemd
+)
+
+# Unstow any prior state before touching anything. Without this, a
+# re-run would follow folded directory symlinks (e.g. ~/.config/zsh
+# symlinked into this repo) and the rm -f below would delete tracked
+# source files through the symlink.
+for dir in "${STOW_PACKAGES[@]}"; do
+    stow -D "$dir" 2>/dev/null || true
+done
+
+# Move runtime / generated files that a prior folded-stow run leaked
+# into the package dirs (systemd enablements via symlinked user dir,
+# matugen output via symlinked config dirs) into real target dirs so
+# they stop polluting the repo.
+mkdir -p ~/.config/systemd/user ~/.config/hypr ~/.config/waybar \
+         ~/.config/kitty ~/.config/rofi ~/.config/yazi ~/.config/zsh
+for item in default.target.wants graphical-session.target.wants \
+            pipewire.service.wants sockets.target.wants \
+            pipewire-session-manager.service; do
+    src="$HOME/.dotfiles/systemd/.config/systemd/user/$item"
+    [ -e "$src" ] && mv "$src" ~/.config/systemd/user/
+done
+for f in colors.conf hyprlock-colors.conf monitors.conf; do
+    src="$HOME/.dotfiles/hyprland/.config/hypr/$f"
+    [ -f "$src" ] && mv "$src" ~/.config/hypr/
+done
+for src_dst in \
+    "waybar/.config/waybar/colors.css:waybar/" \
+    "kitty/.config/kitty/current-theme.conf:kitty/" \
+    "rofi/.config/rofi/colors.rasi:rofi/" \
+    "yazi/.config/yazi/theme.toml:yazi/" \
+    "zsh/.config/zsh/.zcompdump:zsh/" \
+    "zsh/.config/zsh/local.zsh:zsh/"; do
+    src="$HOME/.dotfiles/${src_dst%:*}"
+    dst="$HOME/.config/${src_dst##*:}"
+    [ -f "$src" ] && mv "$src" "$dst"
+done
+
+# Backup any fresh-arch defaults still at target paths (non-symlinks).
 BACKUP_DIR="$HOME/.config/dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 backup_if_exists() {
     local target="$1"
@@ -108,17 +149,11 @@ backup_if_exists() {
         echo "  Backed up $target"
     fi
 }
-
-# Backup files that would conflict with stow
 backup_if_exists ~/.zshenv
 backup_if_exists ~/.config/zsh/.zshrc
 backup_if_exists ~/.config/zsh/.zprofile
 backup_if_exists ~/.config/zsh/.p10k.zsh
 backup_if_exists ~/.gitconfig
-backup_if_exists ~/.config/rofi
-backup_if_exists ~/.config/yazi
-backup_if_exists ~/.config/mpv
-backup_if_exists ~/.config/hypr/hyprsunset.conf
 backup_if_exists ~/.config/awww/set-wallpaper.sh
 backup_if_exists ~/.config/gtk-3.0/settings.ini
 backup_if_exists ~/.config/gtk-4.0/settings.ini
@@ -128,52 +163,29 @@ backup_if_exists ~/.config/uwsm/env
 backup_if_exists ~/.config/uwsm/env-hyprland
 backup_if_exists ~/.config/systemd/user/nilnotify.service
 backup_if_exists ~/.config/systemd/user/awww.service
-backup_if_exists ~/.config/kitty
-backup_if_exists ~/.config/hypr
-backup_if_exists ~/.config/waybar
-
 if [ -d "$BACKUP_DIR" ]; then
     echo "  Backups saved to $BACKUP_DIR"
 fi
 
-# Save machine-specific configs that live alongside stowed files
-SAVED_MONITORS="" SAVED_COLORS="" SAVED_HYPRLOCK_COLORS=""
-[ -f ~/.config/hypr/monitors.conf ] && SAVED_MONITORS=$(cat ~/.config/hypr/monitors.conf)
-[ -f ~/.config/hypr/colors.conf ] && SAVED_COLORS=$(cat ~/.config/hypr/colors.conf)
-[ -f ~/.config/hypr/hyprlock-colors.conf ] && SAVED_HYPRLOCK_COLORS=$(cat ~/.config/hypr/hyprlock-colors.conf)
-
-# Remove existing configs that would conflict with stow
+# Remove non-symlink conflicts. Safe now: unstow above removed every
+# stow-managed symlink, so no rm here can traverse into the repo.
 rm -f ~/.zshenv ~/.gitconfig
 rm -f ~/.config/zsh/.zshrc ~/.config/zsh/.zprofile ~/.config/zsh/.p10k.zsh
-rm -rf ~/.config/rofi ~/.config/yazi ~/.config/mpv
 rm -f ~/.config/awww/set-wallpaper.sh
 rm -f ~/.config/gtk-3.0/settings.ini ~/.config/gtk-4.0/settings.ini
 rm -rf ~/.config/qt6ct
 rm -rf ~/.config/matugen
 rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
 rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.service
-rm -rf ~/.config/kitty ~/.config/hypr ~/.config/waybar
 
-STOW_PACKAGES=(
-    zsh git kitty hyprland rofi yazi mpv
-    waybar gtk matugen uwsm awww systemd
-)
-
+# --no-folding creates individual file symlinks rather than folding a
+# package into one dir symlink. This keeps runtime writes (systemd
+# enablements, matugen output) in the real filesystem instead of
+# silently ending up in the repo via a directory symlink.
 for dir in "${STOW_PACKAGES[@]}"; do
     echo "  Stowing $dir..."
-    stow -v "$dir" 2>&1 | grep -v "^$" || true
+    stow -v --no-folding "$dir" 2>&1 | grep -v "^$" || true
 done
-
-# Restore machine-specific configs
-if [ -n "$SAVED_MONITORS" ]; then
-  echo "$SAVED_MONITORS" > ~/.config/hypr/monitors.conf
-fi
-if [ -n "$SAVED_COLORS" ]; then
-  echo "$SAVED_COLORS" > ~/.config/hypr/colors.conf
-fi
-if [ -n "$SAVED_HYPRLOCK_COLORS" ]; then
-  echo "$SAVED_HYPRLOCK_COLORS" > ~/.config/hypr/hyprlock-colors.conf
-fi
 
 # --- 5. System configs (symlinks to dotfiles) ---
 echo "[5/9] Applying system configs..."

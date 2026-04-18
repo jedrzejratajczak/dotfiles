@@ -1,14 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-# Base install script for the laptop machine
-# Disk:     Single NVMe → LUKS2 + ext4, no swap
+# Base install script for Arch Linux on a fresh machine.
+# Disk:     Single NVMe -> LUKS2 + ext4, no swap
 # Boot:     systemd-boot + UKI + sd-encrypt
+# Profile:  Auto-detected from /sys/class/power_supply/BAT*
 #
-# Usage: Boot Arch ISO, connect to WiFi, then:
-#   curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/laptop/base-install.sh
+# Usage: Boot Arch ISO, then:
+#   curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/base-install.sh
 #   chmod +x base-install.sh
 #   ./base-install.sh
+
+# Live-ISO setup: Polish keyboard for LUKS password, NTP for HTTPS cert validity.
+loadkeys pl
+timedatectl set-ntp true
 
 DISK="/dev/nvme0n1"
 ESP="${DISK}p1"
@@ -20,7 +25,19 @@ TIMEZONE="Europe/Warsaw"
 LOCALE="en_US.UTF-8"
 KEYMAP="pl"
 
-echo "=== Arch Linux base install (laptop) ==="
+if ls /sys/class/power_supply/BAT* &>/dev/null; then
+    PROFILE="laptop"
+    EXTRA_PKGS="sof-firmware"
+    MKINITCPIO_MODULES="amdgpu"
+    NET_HINT="WiFi: nmcli device wifi connect <SSID> password <pass>"
+else
+    PROFILE="desktop"
+    EXTRA_PKGS="nvidia-open"
+    MKINITCPIO_MODULES="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
+    NET_HINT="ethernet"
+fi
+
+echo "=== Arch Linux base install ($PROFILE) ==="
 echo ""
 echo "Disk:     $DISK"
 echo "Hostname: $HOSTNAME"
@@ -58,7 +75,7 @@ chmod 700 /mnt/boot
 echo "[5/9] Installing base system..."
 pacstrap -K /mnt \
     base linux linux-headers linux-firmware \
-    amd-ucode sof-firmware \
+    amd-ucode $EXTRA_PKGS \
     nano networkmanager \
     cryptsetup sudo git stow base-devel
 
@@ -89,7 +106,7 @@ echo "KEYMAP=$KEYMAP" > /etc/vconsole.conf
 echo "$HOSTNAME" > /etc/hostname
 
 # mkinitcpio
-sed -i 's/^MODULES=.*/MODULES=(amdgpu)/' /etc/mkinitcpio.conf
+sed -i 's/^MODULES=.*/MODULES=($MKINITCPIO_MODULES)/' /etc/mkinitcpio.conf
 sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf keyboard sd-vconsole block sd-encrypt filesystems fsck)/' /etc/mkinitcpio.conf
 
 # Kernel command line for UKI
@@ -159,7 +176,7 @@ echo ""
 echo "=== Installation complete ==="
 echo ""
 echo "Remove USB and reboot. After first boot:"
-echo "  1. Log in, connect to WiFi: nmcli device wifi connect <SSID> password <pass>"
+echo "  1. Log in, connect $NET_HINT"
 echo "  2. cd ~/.dotfiles && ./install.sh"
 echo "  3. Reboot into BIOS, enable Secure Boot"
 echo "  4. cd ~/.dotfiles && ./install.sh  (enrolls TPM2 automatically)"
