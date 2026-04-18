@@ -10,7 +10,9 @@ LUKS2 full-disk encryption, Secure Boot (sbctl-managed keys), TPM2 auto-unlock w
 - Secure Boot: **Disabled**
 - USB Boot: **Enabled**
 
-### 2. Connect to Wi-Fi
+### 2. Live USB
+
+Connect to Wi-Fi:
 
 ```bash
 iwctl
@@ -20,7 +22,7 @@ iwctl
 ping -c 3 archlinux.org
 ```
 
-### 3. Base install
+Install:
 
 ```bash
 curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/base-install.sh
@@ -29,13 +31,15 @@ chmod +x base-install.sh
 poweroff
 ```
 
-### 4. First boot, connect Wi-Fi (laptop)
+### 3. First boot
+
+Connect to Wi-Fi:
 
 ```bash
 nmcli device wifi connect "SSID" password "pass"
 ```
 
-### 5. Environment
+Install:
 
 ```bash
 cd ~/.dotfiles
@@ -43,37 +47,21 @@ cd ~/.dotfiles
 sudo reboot
 ```
 
-### 6. BIOS
+### 4. BIOS
 
 - Secure Boot: **Enabled**
+- USB Boot: **Disabled**
 
-### 7. Environment (second pass, TPM enrollment)
+### 5. Second boot
 
 ```bash
 cd ~/.dotfiles
 ./install.sh
-```
-
-Enter LUKS password, then set a TPM PIN.
-
-### 8. BIOS lockdown
-
-- USB Boot: **Disabled**
-
-### 9. Post-install
-
-```bash
 warp-cli registration new && warp-cli connect
 ```
 
-## After BIOS/firmware update
-
-PCR values change and TPM unlock fails. Boot with LUKS password, then:
+## After BIOS update
 
 ```bash
 cd ~/.dotfiles && ./tpm-reenroll.sh
 ```
-
-## Machine-specific
-
-`~/.config/zsh/local.zsh` is gitignored for per-machine aliases and SSH configs.
