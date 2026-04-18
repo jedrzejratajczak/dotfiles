@@ -55,6 +55,7 @@ sgdisk -n 2:0:0 -t 2:8309 "$DISK"
 
 # --- 2. Encryption ---
 echo "[2/9] Setting up LUKS2 encryption..."
+wipefs -a "$LUKS_PART" "$ESP"
 echo "Enter disk encryption password:"
 cryptsetup luksFormat "$LUKS_PART"
 echo "Re-enter password to open:"
@@ -87,7 +88,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 echo "[7/9] Configuring system..."
 LUKS_UUID=$(blkid -s UUID -o value "$LUKS_PART")
 
-cat > /mnt/tmp/chroot-setup.sh << CHROOT
+cat > /mnt/root/chroot-setup.sh << CHROOT
 #!/bin/bash
 set -euo pipefail
 
@@ -156,13 +157,13 @@ systemctl enable NetworkManager.service
 systemctl enable systemd-boot-update.service
 CHROOT
 
-chmod +x /mnt/tmp/chroot-setup.sh
-arch-chroot -S /mnt /tmp/chroot-setup.sh
-rm /mnt/tmp/chroot-setup.sh
+chmod +x /mnt/root/chroot-setup.sh
+arch-chroot /mnt /root/chroot-setup.sh
+rm /mnt/root/chroot-setup.sh
 
 # --- 8. Clone dotfiles ---
 echo "[8/9] Cloning dotfiles..."
-arch-chroot -S /mnt /bin/bash -c "
+arch-chroot /mnt /bin/bash -c "
     su - $USERNAME -c '
         git clone https://github.com/jedrzejratajczak/dotfiles.git ~/.dotfiles
     '
