@@ -6,7 +6,7 @@ Requisite=graphical-session.target
 
 [Service]
 ExecStart=/usr/bin/awww-daemon
-ExecStartPost=/bin/sh -c 'sleep 1 && /usr/bin/awww restore'
+ExecStartPost=/bin/sh -c 'for _ in $(seq 50); do /usr/bin/awww query >/dev/null 2>&1 && break; sleep 0.1; done; /usr/bin/awww restore 2>/dev/null || /usr/bin/awww img "$HOME/Pictures/Wallpapers/p0.webp"'
 Restart=on-failure
 RestartSec=1
 

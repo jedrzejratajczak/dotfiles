@@ -20,7 +20,7 @@ echo "Detected profile: $PROFILE"
 echo ""
 
 # --- 1. Packages (official repos) ---
-echo "[1/9] Installing official repo packages..."
+echo "Installing official repo packages..."
 
 # Common packages
 PACKAGES=(
@@ -56,7 +56,7 @@ fi
 sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
 
 # --- 2. AUR helper (paru) ---
-echo "[2/9] Installing paru..."
+echo "Installing paru..."
 if ! command -v paru &>/dev/null; then
   rm -rf /tmp/paru
   for attempt in 1 2 3; do
@@ -73,7 +73,7 @@ if ! command -v paru &>/dev/null; then
 fi
 
 # --- 3. AUR packages ---
-echo "[3/9] Installing AUR packages..."
+echo "Installing AUR packages..."
 AUR_PACKAGES=(
   grimblast-git zsh-theme-powerlevel10k-git pinta
   nilgreeter-bin nilnotify-bin nilpower-bin nilwall-bin nilwidgets-bin
@@ -93,7 +93,7 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 flatpak install --noninteractive flathub io.gitlab.librewolf-community
 
 # --- 4. Stow dotfiles ---
-echo "[4/9] Stowing dotfiles..."
+echo "Stowing dotfiles..."
 cd ~/.dotfiles || { echo "Cannot cd to ~/.dotfiles" >&2; exit 1; }
 
 STOW_PACKAGES=(
@@ -188,7 +188,7 @@ for dir in "${STOW_PACKAGES[@]}"; do
 done
 
 # --- 5. System configs (symlinks to dotfiles) ---
-echo "[5/9] Applying system configs..."
+echo "Applying system configs..."
 
 # TLP (laptop only)
 if [ "$PROFILE" = "laptop" ]; then
@@ -243,7 +243,7 @@ amd_iommu=force_isolation iommu=pt
 IOMMU
 
 # --- 6. Security hardening ---
-echo "[6/9] Applying security hardening..."
+echo "Applying security hardening..."
 
 # Firewall (ufw)
 echo "  Configuring firewall..."
@@ -382,7 +382,7 @@ ProcessSizeMax=0
 COREDUMP
 
 # --- 7. Systemd services ---
-echo "[7/9] Enabling services..."
+echo "Enabling services..."
 
 # System services
 sudo systemctl enable greetd
@@ -401,7 +401,7 @@ fi
 # User services are enabled on first login via .zprofile
 
 # --- 8. Shell and groups ---
-echo "[8/9] Setting default shell and groups..."
+echo "Setting default shell and groups..."
 if [ "$SHELL" != "/usr/bin/zsh" ]; then
   sudo chsh -s /usr/bin/zsh "$USER"
   echo "  Shell changed to zsh (takes effect on next login)"
@@ -412,13 +412,12 @@ if ! groups "$USER" | grep -q '\bdocker\b'; then
 fi
 
 # --- 9. Create directories and copy wallpapers ---
-echo "[9/9] Setting up directories and wallpapers..."
+echo "Setting up directories and wallpapers..."
 mkdir -p ~/Videos ~/Pictures/Wallpapers ~/Pictures/Screenshots
 mkdir -p ~/.config/qt6ct/colors
 mkdir -p ~/.local/state/zsh
 
 # qt6ct config (not stowed — contains machine-specific home path)
-mkdir -p ~/.config/qt6ct/colors
 cp ~/.dotfiles/qt6ct/.config/qt6ct/qt6ct.conf ~/.config/qt6ct/qt6ct.conf
 sed -i "s|__HOME__|$HOME|" ~/.config/qt6ct/qt6ct.conf
 
@@ -450,7 +449,7 @@ if [ ! -f ~/.config/kitty/current-theme.conf ]; then
   touch ~/.config/kitty/current-theme.conf
 fi
 if [ ! -f ~/.config/rofi/colors.rasi ]; then
-  echo '* { bg: #1a1a2e; bg-alpha: #1a1a2ee6; fg: #e0e0e0; accent: #7c7cff; on-accent: #1a1a2e; urgent: #ff6b6b; muted: #a0a0a0; surface: #252540; outline: #606060; }' > ~/.config/rofi/colors.rasi
+  touch ~/.config/rofi/colors.rasi
 fi
 if [ ! -f ~/.config/yazi/theme.toml ]; then
   touch ~/.config/yazi/theme.toml

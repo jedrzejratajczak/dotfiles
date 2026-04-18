@@ -13,7 +13,7 @@ post_hook = "pkill -SIGUSR2 waybar"
 [templates.kitty]
 input_path = "~/.config/matugen/templates/kitty-colors.conf"
 output_path = "~/.config/kitty/current-theme.conf"
-post_hook = "kill -SIGUSR1 $(pgrep kitty) 2>/dev/null || true"
+post_hook = "pkill -SIGUSR1 kitty || true"
 
 [templates.rofi]
 input_path = "~/.config/matugen/templates/rofi-colors.rasi"

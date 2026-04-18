@@ -27,12 +27,12 @@ KEYMAP="pl"
 
 if ls /sys/class/power_supply/BAT* &>/dev/null; then
     PROFILE="laptop"
-    EXTRA_PKGS="sof-firmware"
+    EXTRA_PKGS=(sof-firmware)
     MKINITCPIO_MODULES="amdgpu"
     NET_HINT="WiFi: nmcli device wifi connect <SSID> password <pass>"
 else
     PROFILE="desktop"
-    EXTRA_PKGS="nvidia-open"
+    EXTRA_PKGS=(nvidia-open)
     MKINITCPIO_MODULES="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
     NET_HINT="ethernet"
 fi
@@ -76,7 +76,7 @@ chmod 700 /mnt/boot
 echo "[5/9] Installing base system..."
 pacstrap -K /mnt \
     base linux linux-headers linux-firmware \
-    amd-ucode $EXTRA_PKGS \
+    amd-ucode "${EXTRA_PKGS[@]}" \
     nano networkmanager \
     cryptsetup sudo git stow base-devel
 
