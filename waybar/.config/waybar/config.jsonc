@@ -9,7 +9,7 @@
 
     "modules-left": ["hyprland/workspaces"],
     "modules-center": ["custom/clock"],
-    "modules-right": ["tray", "pulseaudio", "backlight", "battery", "network"],
+    "modules-right": ["tray", "custom/sep#0", "pulseaudio", "custom/sep#1", "backlight", "custom/sep#2", "battery", "custom/sep#3", "network"],
 
     "hyprland/workspaces": {
         "format": "{id}",
@@ -29,9 +29,14 @@
         "show-passive-items": true
     },
 
+    "custom/sep#0": { "format": "|", "tooltip": false },
+    "custom/sep#1": { "format": "|", "tooltip": false },
+    "custom/sep#2": { "format": "|", "tooltip": false },
+    "custom/sep#3": { "format": "|", "tooltip": false },
+
     "pulseaudio": {
         "format": "{icon} {volume}%",
-        "format-muted": "󰝟 muted",
+        "format-muted": "󰝟 0%",
         "format-icons": {
             "default": ["󰕿", "󰖀", "󰕾"]
         },
