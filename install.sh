@@ -336,6 +336,30 @@ When = PostTransaction
 Exec = /usr/bin/chmod 700 /boot
 BOOTHOOK
 
+# Auto re-sign UKIs and systemd-boot after kernel/bootloader updates
+echo "  Installing sbctl auto-sign hook..."
+sudo tee /etc/pacman.d/hooks/95-sbctl-sign.hook > /dev/null << 'SBHOOK'
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = linux
+Target = linux-lts
+Target = linux-zen
+Target = linux-hardened
+Target = systemd
+Target = systemd-boot
+Target = mkinitcpio
+Target = amd-ucode
+Target = intel-ucode
+
+[Action]
+Description = Signing EFI binaries with sbctl...
+When = PostTransaction
+Exec = /usr/bin/sbctl sign-all
+Depends = sbctl
+SBHOOK
+
 # Privacy: disable core dumps
 echo "  Disabling core dumps..."
 sudo mkdir -p /etc/systemd/coredump.conf.d
@@ -473,9 +497,9 @@ if sbctl status 2>/dev/null | grep -q "Secure Boot.*enabled"; then
     if sudo systemd-cryptenroll --tpm2-device=list "/dev/disk/by-uuid/$LUKS_DEV" 2>/dev/null | grep -q tpm2; then
       echo "  TPM2 already enrolled, skipping"
     else
-      echo "Enrolling TPM2 key (you will be asked for your LUKS password)..."
-      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0,2,4,7 "/dev/disk/by-uuid/$LUKS_DEV"
-      echo "TPM2 auto-unlock configured."
+      echo "Enrolling TPM2 key (you will be asked for your LUKS password, then set a TPM PIN)..."
+      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0,2,7,11 --tpm2-with-pin=yes "/dev/disk/by-uuid/$LUKS_DEV"
+      echo "TPM2 auto-unlock configured (PIN required on boot)."
     fi
   fi
 fi

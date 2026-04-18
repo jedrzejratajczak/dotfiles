@@ -1,68 +1,117 @@
 # dotfiles
 
-Arch Linux + Hyprland with full disk encryption, Secure Boot, and TPM2 auto-unlock.
+Arch Linux + Hyprland with LUKS2, Secure Boot (sbctl), TPM2 auto-unlock with PIN.
 
-## Fresh install (desktop)
+## Fresh install
 
-### BIOS setup
+### 1. BIOS
 
-1. Load Optimized Defaults
-2. Set administrator password
-3. Disable CSM
-4. Enable fTPM (AMD fTPM configuration → Firmware TPM)
-5. Enable EXPO I for RAM
-6. Disable Secure Boot (temporarily, for installation)
+- Set Supervisor Password
+- Secure Boot: **Disabled**
+- USB Boot: **Enabled**
+- Network Stack: **Disabled**
+- (Desktop only) Disable CSM, enable fTPM, enable EXPO
 
-### Base system
+### 2. Boot Arch ISO, connect to network
 
-Boot from Arch ISO, connect ethernet, then:
+```bash
+loadkeys pl
+timedatectl set-ntp true
+```
+
+Wi-Fi:
+
+```bash
+iwctl
+# station wlan0 scan
+# station wlan0 connect "SSID"
+# exit
+ping -c 3 archlinux.org
+```
+
+### 3. Base install
+
+Desktop:
 
 ```bash
 curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/desktop/base-install.sh
-chmod +x base-install.sh
-./base-install.sh
 ```
 
-Remove USB and reboot.
+Laptop:
 
-### Environment setup
+```bash
+curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/laptop/base-install.sh
+```
 
-Log in, connect ethernet, then:
+```bash
+chmod +x base-install.sh
+./base-install.sh
+poweroff
+```
+
+### 4. First boot, connect Wi-Fi (laptop)
+
+```bash
+nmcli device wifi connect "SSID" password "pass"
+```
+
+### 5. Environment
+
+```bash
+cd ~/.dotfiles
+./install.sh
+sudo reboot
+```
+
+### 6. BIOS
+
+- Secure Boot: **Enabled**
+
+### 7. Environment (second pass, TPM enrollment)
 
 ```bash
 cd ~/.dotfiles
 ./install.sh
 ```
 
-Reboot into BIOS, enable Secure Boot, boot into system, run `./install.sh` again (enrolls TPM2 automatically). After this, LUKS unlocks automatically on boot.
+Enter LUKS password, then set a TPM PIN.
 
-## Fresh install (laptop)
+### 8. BIOS lockdown
 
-### BIOS setup
+- USB Boot: **Disabled**
 
-1. Set administrator password
-2. Disable Secure Boot (temporarily, for installation)
-
-### Base system
-
-Boot from Arch ISO, connect to WiFi, then:
+### 9. Post-install
 
 ```bash
-curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/laptop/base-install.sh
-chmod +x base-install.sh
-./base-install.sh
+warp-cli registration new && warp-cli connect
 ```
 
-Remove USB and reboot. Environment setup and Secure Boot + TPM2 are the same as desktop.
+## Verify
+
+```bash
+bootctl status | grep -i "secure boot"
+sudo sbctl status && sudo sbctl verify
+sudo systemd-cryptenroll /dev/nvme0n1p2
+sudo ufw status verbose
+systemctl is-active usbguard
+resolvectl status | grep -i "DNS over TLS"
+```
+
+## After BIOS/firmware update
+
+PCR values change and TPM unlock fails. Boot with LUKS password, then:
+
+```bash
+cd ~/.dotfiles && ./tpm-reenroll.sh
+```
 
 ## Existing system
 
 ```bash
 git clone https://github.com/jedrzejratajczak/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
-./install.sh
+cd ~/.dotfiles && ./install.sh
 ```
 
-## Machine-specific config
+## Machine-specific
 
-`~/.config/zsh/local.zsh` is gitignored. Use it for per-machine aliases, variables, and SSH configs.
+`~/.config/zsh/local.zsh` is gitignored for per-machine aliases and SSH configs.
