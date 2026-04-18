@@ -1,6 +1,6 @@
 # Arch Linux + Hyprland dotfiles
 
-LUKS2 full-disk encryption, Secure Boot (sbctl-managed keys), TPM2 auto-unlock with PIN, ufw, USBGuard, DNS-over-TLS, kernel hardening (kptr/dmesg/bpf/ptrace), DMA protection (IOMMU).
+LUKS2, Secure Boot, TPM2 + PIN, ufw, USBGuard, DNS-over-TLS, kernel hardening, DMA protection.
 
 ## Install
 
