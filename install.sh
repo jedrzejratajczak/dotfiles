@@ -244,6 +244,16 @@ mem_encrypt=on
 MEMENC
 fi
 
+# KSPP-recommended runtime hardening (https://kspp.github.io/Recommended_Settings).
+# slab_nomerge / init_on_*: mitigate heap exploits. page_alloc.shuffle:
+# randomize freelists. randomize_kstack_offset: per-syscall kstack ASLR.
+# vsyscall=none: remove legacy vsyscall page. lockdown=confidentiality +
+# module.sig_enforce=1: with Secure Boot enrolled, only signed modules
+# load and root can't read kernel memory. debugfs=off: hide the debug fs.
+sudo tee /etc/cmdline.d/hardening.conf > /dev/null << 'HARDENING'
+slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none lockdown=confidentiality module.sig_enforce=1 debugfs=off
+HARDENING
+
 # DMA protection (Thunderbolt/PCIe). iommu=pt is intentionally absent:
 # per kernel docs force_isolation explicitly does NOT override iommu=pt,
 # so pt would defeat the isolation. intel_iommu=on is a no-op on AMD.
@@ -297,19 +307,43 @@ net.core.bpf_jit_harden = 2
 # Prevent core dumps for SUID binaries
 fs.suid_dumpable = 0
 
-# Restrict ptrace to parent processes only
+# Restrict ptrace to parent processes only (scope=1 still allows IDE
+# debuggers like VS Code to attach to their own children; scope=2/3
+# would break that)
 kernel.yama.ptrace_scope = 1
 
+# Block kexec-based kernel replacement at runtime
+kernel.kexec_load_disabled = 1
+
+# Restrict perf_event_open to root only
+kernel.perf_event_paranoid = 3
+
+# File creation hardening (protect against hardlink/symlink/FIFO
+# races in world-writable dirs like /tmp)
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+fs.protected_fifos = 2
+fs.protected_regular = 2
+
 # Network hardening
+net.ipv4.tcp_syncookies = 1
 net.ipv4.conf.all.rp_filter = 1
 net.ipv4.conf.default.rp_filter = 1
 net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
 net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_redirects = 0
 net.ipv4.conf.all.send_redirects = 0
 net.ipv4.conf.default.send_redirects = 0
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
 SYSCTL
 
 # PAM login delay (4 seconds between attempts, brute-force protection)
