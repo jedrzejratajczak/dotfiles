@@ -346,11 +346,20 @@ net.ipv4.conf.all.log_martians = 1
 net.ipv4.conf.default.log_martians = 1
 SYSCTL
 
-# PAM login delay (4 seconds between attempts, brute-force protection)
-echo "  Configuring login delay..."
+# PAM login delay (4s between attempts) + faillock (lockout after N).
+# pam_faillock is already wired into /etc/pam.d/system-auth by the
+# Arch pambase package; only faillock.conf needs thresholds.
+echo "  Configuring login delay and lockout..."
 if ! grep -q "pam_faildelay" /etc/pam.d/system-login 2>/dev/null; then
   sudo sed -i '0,/^auth/{s/^auth/auth       optional   pam_faildelay.so delay=4000000\nauth/}' /etc/pam.d/system-login
 fi
+sudo tee /etc/security/faillock.conf > /dev/null << 'FAILLOCK'
+# Lock account after 5 failures within 15 min, for 10 min. Root is
+# exempt by default (add even_deny_root to include it — risky).
+deny = 5
+unlock_time = 600
+fail_interval = 900
+FAILLOCK
 
 # USBGuard (whitelist current devices, block unknown)
 echo "  Configuring USBGuard..."
@@ -413,6 +422,7 @@ sudo systemctl enable NetworkManager
 sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 sudo systemctl enable ufw
 sudo systemctl enable usbguard
+sudo systemctl enable usbguard-dbus.service
 sudo systemctl enable systemd-resolved
 sudo systemctl enable docker.socket
 sudo systemctl enable --now warp-svc
