@@ -13,7 +13,7 @@ DEV="/dev/disk/by-uuid/$LUKS_DEV"
 echo "Wiping existing TPM2 slot on $DEV..."
 sudo systemd-cryptenroll --wipe-slot=tpm2 "$DEV"
 
-echo "Enrolling new TPM2 key with PCR 0,2,7,11 + PIN..."
-sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0,2,7,11 --tpm2-with-pin=yes "$DEV"
+echo "Enrolling new TPM2 key with PCR 7+11 + PIN..."
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+11 --tpm2-with-pin=yes "$DEV"
 
 echo "Done. Reboot to verify auto-unlock with new PIN."

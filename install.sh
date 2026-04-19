@@ -234,12 +234,21 @@ fi
 # Silent boot
 sudo mkdir -p /etc/cmdline.d
 sudo tee /etc/cmdline.d/silent.conf > /dev/null << 'SILENT'
-quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3 mem_encrypt=on
+quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3
 SILENT
 
-# DMA protection (Thunderbolt/PCIe)
+# AMD SME (memory encryption). Silently ignored on Intel, so gate by vendor.
+if grep -q AuthenticAMD /proc/cpuinfo; then
+  sudo tee /etc/cmdline.d/mem-encrypt.conf > /dev/null << 'MEMENC'
+mem_encrypt=on
+MEMENC
+fi
+
+# DMA protection (Thunderbolt/PCIe). iommu=pt is intentionally absent:
+# per kernel docs force_isolation explicitly does NOT override iommu=pt,
+# so pt would defeat the isolation. intel_iommu=on is a no-op on AMD.
 sudo tee /etc/cmdline.d/iommu.conf > /dev/null << 'IOMMU'
-amd_iommu=force_isolation iommu=pt
+amd_iommu=force_isolation intel_iommu=on iommu.passthrough=0 iommu.strict=1
 IOMMU
 
 # --- 6. Security hardening ---
@@ -259,7 +268,7 @@ sudo tee /etc/systemd/resolved.conf.d/dns-over-tls.conf > /dev/null << 'DNS'
 DNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com
 FallbackDNS=9.9.9.9#dns.quad9.net
 DNSOverTLS=true
-DNSSEC=opportunistic
+DNSSEC=allow-downgrade
 Domains=~.
 DNS
 sudo ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
@@ -348,29 +357,9 @@ When = PostTransaction
 Exec = /usr/bin/chmod 700 /boot
 BOOTHOOK
 
-# Auto re-sign UKIs and systemd-boot after kernel/bootloader updates
-echo "  Installing sbctl auto-sign hook..."
-sudo tee /etc/pacman.d/hooks/95-sbctl-sign.hook > /dev/null << 'SBHOOK'
-[Trigger]
-Operation = Install
-Operation = Upgrade
-Type = Package
-Target = linux
-Target = linux-lts
-Target = linux-zen
-Target = linux-hardened
-Target = systemd
-Target = systemd-boot
-Target = mkinitcpio
-Target = amd-ucode
-Target = intel-ucode
-
-[Action]
-Description = Signing EFI binaries with sbctl...
-When = PostTransaction
-Exec = /usr/bin/sbctl sign-all
-Depends = sbctl
-SBHOOK
+# (sbctl package ships /usr/share/libalpm/hooks/zz-sbctl.hook which auto-
+# signs EFI binaries on any boot/* or vmlinuz update, so no custom hook
+# is needed here.)
 
 # Privacy: disable core dumps
 echo "  Disabling core dumps..."
@@ -402,7 +391,7 @@ fi
 
 # --- 8. Shell and groups ---
 echo "Setting default shell and groups..."
-if [ "$SHELL" != "/usr/bin/zsh" ]; then
+if [ "$(getent passwd "$USER" | cut -d: -f7)" != "/usr/bin/zsh" ]; then
   sudo chsh -s /usr/bin/zsh "$USER"
   echo "  Shell changed to zsh (takes effect on next login)"
 fi
@@ -476,24 +465,20 @@ if [ -f ~/Pictures/Wallpapers/p0.webp ] && command -v matugen &>/dev/null; then
   echo "  Default color scheme generated from p0.webp"
 fi
 
-# Regenerate UKIs (picks up silent boot cmdline)
-sudo mkinitcpio -P
-
-echo ""
-echo "=== Installation complete ==="
-echo ""
-
-# --- Secure Boot + TPM2 ---
+# --- Secure Boot keys (before mkinitcpio so sign loop can pick up fresh UKIs) ---
 echo "Setting up Secure Boot..."
 sudo pacman -S --needed --noconfirm sbctl tpm2-tss
 
-if ! sudo sbctl list-keys &>/dev/null || [ -z "$(sudo sbctl list-keys 2>/dev/null)" ]; then
+if [ ! -f /var/lib/sbctl/keys/PK/PK.key ]; then
   echo "Creating Secure Boot keys..."
   sudo sbctl create-keys
   sudo sbctl enroll-keys -m
 else
   echo "  Secure Boot keys already exist, skipping creation"
 fi
+
+# Regenerate UKIs (picks up silent boot / iommu / hardening cmdline drop-ins)
+sudo mkinitcpio -P
 
 echo "Signing boot files..."
 for uki in /boot/EFI/Linux/*.efi; do
@@ -502,14 +487,24 @@ done
 sudo sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
 sudo sbctl verify
 
-if sbctl status 2>/dev/null | grep -q "Secure Boot.*enabled"; then
+echo ""
+echo "=== Installation complete ==="
+echo ""
+
+# --- TPM2 auto-unlock (requires Secure Boot already enabled in BIOS) ---
+# PCR set per systemd-cryptenroll(1): "bound to some combination of PCRs
+# 7, 11, and 14 (if shim/MOK is used). ... not advisable to use PCRs such
+# as 0 and 2, since the program code they cover should already be covered
+# indirectly through the certificates measured into PCR 7."
+if sbctl status 2>/dev/null | grep -q "Secure Boot.*[Ee]nabled"; then
   LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null || true)
   if [ -n "$LUKS_DEV" ]; then
-    if sudo systemd-cryptenroll --tpm2-device=list "/dev/disk/by-uuid/$LUKS_DEV" 2>/dev/null | grep -q tpm2; then
+    LUKS_DEVICE="/dev/disk/by-uuid/$LUKS_DEV"
+    if sudo cryptsetup luksDump "$LUKS_DEVICE" | grep -q systemd-tpm2; then
       echo "  TPM2 already enrolled, skipping"
     else
       echo "Enrolling TPM2 key (you will be asked for your LUKS password, then set a TPM PIN)..."
-      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=0,2,7,11 --tpm2-with-pin=yes "/dev/disk/by-uuid/$LUKS_DEV"
+      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+11 --tpm2-with-pin=yes "$LUKS_DEVICE"
       echo "TPM2 auto-unlock configured (PIN required on boot)."
     fi
   fi
