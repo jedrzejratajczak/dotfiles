@@ -505,7 +505,22 @@ if [ ! -f ~/.config/kitty/current-theme.conf ]; then
   touch ~/.config/kitty/current-theme.conf
 fi
 if [ ! -f ~/.config/rofi/colors.rasi ]; then
-  touch ~/.config/rofi/colors.rasi
+  # Seed with safe defaults so rofi doesn't spam "var failed to resolve"
+  # warnings and render unthemed if rofi is launched before matugen runs
+  # (or if matugen fails — e.g. no p0.webp on a minimal wallpaper set).
+  cat > ~/.config/rofi/colors.rasi << 'ROFI_COLORS'
+* {
+    bg: #1a1a2e;
+    bg-alpha: #1a1a2ee6;
+    fg: #e0e0e0;
+    accent: #7c7cff;
+    on-accent: #1a1a2e;
+    urgent: #ff6b6b;
+    muted: #a0a0a0;
+    surface: #252540;
+    outline: #606060;
+}
+ROFI_COLORS
 fi
 if [ ! -f ~/.config/yazi/theme.toml ]; then
   touch ~/.config/yazi/theme.toml

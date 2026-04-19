@@ -5,7 +5,11 @@ After=graphical-session.target
 
 [Service]
 ExecStart=/usr/bin/awww-daemon
-ExecStartPost=/bin/sh -c 'for _ in $(seq 50); do /usr/bin/awww query >/dev/null 2>&1 && break; sleep 0.1; done; /usr/bin/awww restore 2>/dev/null || /usr/bin/awww img "$HOME/Pictures/Wallpapers/p0.webp"'
+# awww restore always exits 0 (even on empty cache it just emits a
+# warning per output), so a naive `restore || img` never falls back.
+# Branch on cache presence instead: if ~/.cache/awww has any per-output
+# entry, restore it; otherwise set the default wallpaper.
+ExecStartPost=/bin/sh -c 'for _ in $(seq 50); do /usr/bin/awww query >/dev/null 2>&1 && break; sleep 0.1; done; if [ -n "$(find "$HOME/.cache/awww" -mindepth 2 -type f 2>/dev/null)" ]; then /usr/bin/awww restore; else /usr/bin/awww img "$HOME/Pictures/Wallpapers/p0.webp"; fi'
 Restart=on-failure
 RestartSec=1
 
