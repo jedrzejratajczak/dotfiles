@@ -16,7 +16,12 @@ if ls /sys/class/power_supply/BAT* &>/dev/null; then
 else
   PROFILE="desktop"
 fi
-echo "Detected profile: $PROFILE"
+if grep -q GenuineIntel /proc/cpuinfo; then
+  UCODE="intel-ucode"
+else
+  UCODE="amd-ucode"
+fi
+echo "Detected profile: $PROFILE ($UCODE)"
 echo ""
 
 # --- 1. Packages (official repos) ---
@@ -39,7 +44,7 @@ PACKAGES=(
   docker docker-compose
   fzf jq less xdg-utils
   gst-plugin-pipewire libpulse
-  linux-firmware amd-ucode efibootmgr
+  linux-firmware "$UCODE" efibootmgr
   github-cli
   obs-studio kdenlive
   ufw usbguard awww matugen code
@@ -173,8 +178,9 @@ rm -f ~/.zshenv ~/.gitconfig
 rm -f ~/.config/zsh/.zshrc ~/.config/zsh/.zprofile ~/.config/zsh/.p10k.zsh
 rm -f ~/.config/awww/set-wallpaper.sh
 rm -f ~/.config/gtk-3.0/settings.ini ~/.config/gtk-4.0/settings.ini
-rm -rf ~/.config/qt6ct
-rm -rf ~/.config/matugen
+rm -f ~/.config/qt6ct/qt6ct.conf
+# matugen dir is stow-managed; unstow above already cleared its symlinks.
+# Avoid rm -rf here so any user-added templates survive a re-run.
 rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
 rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.service
 
@@ -226,9 +232,16 @@ else
   echo "  WARNING: No wallpaper found — copy a GIF to /usr/share/nilgreeter/background.gif"
 fi
 
-# Boot optimization
+# Boot optimization: timeout 0 skips systemd-boot menu entirely.
+# Replace existing timeout line or append if missing (sed's in-place
+# substitution is a no-op on absent lines, which would silently leave
+# the loader at base-install's default of 4s).
 if [ -f /boot/loader/loader.conf ]; then
-  sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+  if grep -q '^timeout' /boot/loader/loader.conf; then
+    sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
+  else
+    echo "timeout 0" | sudo tee -a /boot/loader/loader.conf > /dev/null
+  fi
 fi
 
 # Silent boot
@@ -315,8 +328,9 @@ kernel.yama.ptrace_scope = 1
 # Block kexec-based kernel replacement at runtime
 kernel.kexec_load_disabled = 1
 
-# Restrict perf_event_open to root only
-kernel.perf_event_paranoid = 3
+# Restrict perf_event_open (2 = deny tracepoints + raw + CPU events
+# for unprivileged users; value 3 is a Debian downstream patch only)
+kernel.perf_event_paranoid = 2
 
 # File creation hardening (protect against hardlink/symlink/FIFO
 # races in world-writable dirs like /tmp)
@@ -365,6 +379,7 @@ FAILLOCK
 echo "  Configuring USBGuard..."
 if [ ! -f /etc/usbguard/rules.conf ] || [ ! -s /etc/usbguard/rules.conf ]; then
   sudo sh -c 'usbguard generate-policy > /etc/usbguard/rules.conf'
+  sudo chmod 600 /etc/usbguard/rules.conf
   echo "  USBGuard policy generated from currently connected devices"
 fi
 
@@ -425,7 +440,8 @@ sudo systemctl enable usbguard
 sudo systemctl enable usbguard-dbus.service
 sudo systemctl enable systemd-resolved
 sudo systemctl enable docker.socket
-sudo systemctl enable --now warp-svc
+sudo systemctl enable warp-svc
+sudo systemctl start warp-svc 2>/dev/null || echo "  warp-svc start deferred (will auto-start on next boot)"
 
 if [ "$PROFILE" = "laptop" ]; then
   sudo systemctl enable tlp
@@ -529,7 +545,9 @@ for uki in /boot/EFI/Linux/*.efi; do
   [ -f "$uki" ] && sudo sbctl sign -s "$uki"
 done
 sudo sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
-sudo sbctl verify
+# Non-fatal: sbctl verify returns non-zero if any file is unsigned, but
+# that's informational here, not a reason to abort the whole installer.
+sudo sbctl verify || true
 
 echo ""
 echo "=== Installation complete ==="
@@ -556,7 +574,7 @@ fi
 
 echo ""
 echo "=== Post-install ==="
-if ! sbctl status 2>/dev/null | grep -q "Secure Boot.*enabled"; then
+if ! sbctl status 2>/dev/null | grep -q "Secure Boot.*[Ee]nabled"; then
   echo "  1. Reboot into BIOS, enable Secure Boot"
   echo "  2. Boot into system, re-run ./install.sh (will enroll TPM2 automatically)"
 fi
