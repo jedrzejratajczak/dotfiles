@@ -42,8 +42,8 @@ PACKAGES=(
   uwsm qt6-wayland qt6ct
   eza bat git-delta lazygit
   docker docker-compose
-  fzf jq less xdg-utils
-  gst-plugin-pipewire libpulse
+  fzf jq less xdg-utils xdg-user-dirs
+  gst-plugin-pipewire libpulse libnotify
   linux-firmware "$UCODE" efibootmgr
   github-cli
   obs-studio kdenlive
@@ -57,6 +57,28 @@ if [ "$PROFILE" = "laptop" ]; then
 elif [ "$PROFILE" = "desktop" ]; then
   PACKAGES+=(nvidia-open linux-headers)
 fi
+
+# Suspend mkinitcpio pacman hooks during bulk install. Without this,
+# every kernel-adjacent package (systemd, mkinitcpio, amd-ucode, linux-
+# headers, etc.) triggers a full mkinitcpio -P inside pacman. A single
+# explicit regeneration near the end is enough. Restored via EXIT trap
+# so a mid-run failure doesn't leave the hooks missing from pacman's
+# hook dir on the next upgrade. (Pattern borrowed from Omarchy.)
+MKHOOK_DIR="/usr/share/libalpm/hooks"
+MKHOOK_BAK="/tmp"
+_restore_mkhooks() {
+  for h in 60-mkinitcpio-remove 90-mkinitcpio-install; do
+    if [ -f "$MKHOOK_BAK/${h}.hook.bak" ]; then
+      sudo mv "$MKHOOK_BAK/${h}.hook.bak" "$MKHOOK_DIR/${h}.hook" 2>/dev/null || true
+    fi
+  done
+}
+trap _restore_mkhooks EXIT
+for h in 60-mkinitcpio-remove 90-mkinitcpio-install; do
+  if [ -f "$MKHOOK_DIR/${h}.hook" ] && [ ! -f "$MKHOOK_BAK/${h}.hook.bak" ]; then
+    sudo mv "$MKHOOK_DIR/${h}.hook" "$MKHOOK_BAK/${h}.hook.bak"
+  fi
+done
 
 sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
 
@@ -469,7 +491,10 @@ fi
 
 # --- 9. Create directories and copy wallpapers ---
 echo "Setting up directories and wallpapers..."
-mkdir -p ~/Videos ~/Pictures/Wallpapers ~/Pictures/Screenshots
+# Canonical XDG user directories (Desktop, Documents, Downloads, etc.).
+# Community-standard alternative to hand-rolled mkdir of ~/Pictures etc.
+xdg-user-dirs-update
+mkdir -p ~/Pictures/Wallpapers ~/Pictures/Screenshots
 mkdir -p ~/.config/qt6ct/colors
 mkdir -p ~/.local/state/zsh
 
