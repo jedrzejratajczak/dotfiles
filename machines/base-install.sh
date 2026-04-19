@@ -76,13 +76,14 @@ mkfs.fat -F 32 "$ESP"
 # --- 4. Mounting ---
 echo "[4/9] Mounting..."
 mount "/dev/mapper/$CRYPT_NAME" /mnt
-mount --mkdir "$ESP" /mnt/boot
-chmod 700 /mnt/boot
+# fmask/dmask enforce root-only perms on FAT (chmod is ignored on vfat).
+# umask=0077 covers both in one. noatime avoids needless FAT writes.
+mount --mkdir -o umask=0077,noatime "$ESP" /mnt/boot
 
 # --- 5. Base install ---
 echo "[5/9] Installing base system..."
 pacstrap -K /mnt \
-    base linux linux-headers linux-firmware \
+    base linux linux-firmware \
     "$UCODE" "${EXTRA_PKGS[@]}" \
     nano networkmanager \
     cryptsetup sudo git stow base-devel
@@ -120,6 +121,12 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboar
 # Kernel command line for UKI
 mkdir -p /etc/cmdline.d
 echo "rd.luks.name=${LUKS_UUID}=root root=/dev/mapper/root rw" > /etc/cmdline.d/root.conf
+if [ "$PROFILE" = "desktop" ]; then
+  # Belt-and-suspenders: nvidia-utils ships a modprobe conf with
+  # modeset=1, but setting it at cmdline ensures early KMS even if a
+  # later package ever strips that modprobe drop-in.
+  echo "nvidia_drm.modeset=1 nvidia_drm.fbdev=1" > /etc/cmdline.d/nvidia.conf
+fi
 
 # UKI preset
 cat > /etc/mkinitcpio.d/linux.preset << 'PRESET'
