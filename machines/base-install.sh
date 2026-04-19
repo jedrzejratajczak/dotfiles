@@ -186,6 +186,9 @@ arch-chroot /mnt /bin/bash -c "
 # --- 9. Done ---
 echo "[9/9] Cleaning up..."
 umount -R /mnt
+# umount doesn't tear down the LUKS mapper; close it explicitly so a
+# second script run can re-open the same name without "already in use".
+cryptsetup close "$CRYPT_NAME"
 
 echo ""
 echo "=== Installation complete ==="

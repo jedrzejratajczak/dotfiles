@@ -95,7 +95,7 @@ paru -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 
 # Flatpak (sandboxed apps)
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install --noninteractive flathub io.gitlab.librewolf-community
+flatpak install -y --noninteractive flathub io.gitlab.librewolf-community
 
 # --- 4. Stow dotfiles ---
 echo "Stowing dotfiles..."
