@@ -11,9 +11,33 @@ set -euo pipefail
 #   chmod +x base-install.sh
 #   ./base-install.sh
 
+# Tee everything to a log so a failed install leaves breadcrumbs.
+# Copied into the target at /mnt/var/log/ on success.
+LOG="/tmp/base-install.log"
+: > "$LOG"
+exec > >(tee -a "$LOG") 2>&1
+trap 'echo "[base-install FAILED at line $LINENO, exit $?]. Full log: $LOG" >&2' ERR
+
+# Preflight guards — fail early with a clear message instead of a
+# half-corrupted disk halfway through.
+[ "$EUID" -eq 0 ] || { echo "Must run as root (live ISO boots root by default)" >&2; exit 1; }
+[ "$(uname -m)" = "x86_64" ] || { echo "x86_64 only (arch: $(uname -m))" >&2; exit 1; }
+[ -d /sys/firmware/efi ] || { echo "UEFI firmware required (missing /sys/firmware/efi)" >&2; exit 1; }
+command -v pacstrap >/dev/null || { echo "Not on Arch install ISO (pacstrap missing)" >&2; exit 1; }
+
 # Live-ISO setup: Polish keyboard for LUKS password, NTP for HTTPS cert validity.
 loadkeys pl
 timedatectl set-ntp true
+
+# pacman hits mirrors over HTTPS; clock skew > ~5min causes TLS cert
+# errors. Poll until timesyncd converges (archinstall pattern).
+echo "Waiting for NTP sync (up to 30s)..."
+for _ in $(seq 30); do
+    if [ "$(timedatectl show --property=NTPSynchronized --value 2>/dev/null || echo no)" = "yes" ]; then
+        break
+    fi
+    sleep 1
+done
 
 DISK="/dev/nvme0n1"
 ESP="${DISK}p1"
@@ -59,12 +83,23 @@ echo "[1/9] Partitioning..."
 sgdisk --zap-all "$DISK"
 sgdisk -n 1:0:+1G -t 1:ef00 "$DISK"
 sgdisk -n 2:0:0 -t 2:8309 "$DISK"
+# Force kernel to re-read the new partition table before the next
+# command tries to open $LUKS_PART (cryptsetup can race sgdisk otherwise).
+partprobe "$DISK"
 
 # --- 2. Encryption ---
 echo "[2/9] Setting up LUKS2 encryption..."
 wipefs -a "$LUKS_PART" "$ESP"
 echo "Enter disk encryption password:"
-cryptsetup luksFormat "$LUKS_PART"
+# Pin crypto explicitly rather than relying on cryptsetup defaults:
+# LUKS2 + argon2id + sha512 + 512-bit XTS (matches archinstall/alis).
+cryptsetup luksFormat \
+    --type luks2 \
+    --pbkdf argon2id \
+    --hash sha512 \
+    --key-size 512 \
+    --use-urandom \
+    "$LUKS_PART"
 echo "Re-enter password to open:"
 cryptsetup open "$LUKS_PART" "$CRYPT_NAME"
 
@@ -185,6 +220,10 @@ arch-chroot /mnt /bin/bash -c "
 
 # --- 9. Done ---
 echo "[9/9] Cleaning up..."
+# Preserve the install log on the target so post-install debugging can
+# read it after reboot. Before umount since /mnt is about to disappear.
+mkdir -p /mnt/var/log
+cp "$LOG" /mnt/var/log/base-install.log || true
 umount -R /mnt
 # umount doesn't tear down the LUKS mapper; close it explicitly so a
 # second script run can re-open the same name without "already in use".
