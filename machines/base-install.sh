@@ -37,6 +37,13 @@ else
     NET_HINT="ethernet"
 fi
 
+# CPU microcode package based on vendor (hardcoding amd-ucode breaks Intel).
+if grep -q GenuineIntel /proc/cpuinfo; then
+    UCODE="intel-ucode"
+else
+    UCODE="amd-ucode"
+fi
+
 echo "=== Arch Linux base install ($PROFILE) ==="
 echo ""
 echo "Disk:     $DISK"
@@ -76,7 +83,7 @@ chmod 700 /mnt/boot
 echo "[5/9] Installing base system..."
 pacstrap -K /mnt \
     base linux linux-headers linux-firmware \
-    amd-ucode "${EXTRA_PKGS[@]}" \
+    "$UCODE" "${EXTRA_PKGS[@]}" \
     nano networkmanager \
     cryptsetup sudo git stow base-devel
 
@@ -96,9 +103,9 @@ set -euo pipefail
 ln -sf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
 hwclock --systohc
 
-# Locale
-sed -i 's/^#$LOCALE UTF-8/$LOCALE UTF-8/' /etc/locale.gen
-sed -i 's/^#pl_PL.UTF-8 UTF-8/pl_PL.UTF-8 UTF-8/' /etc/locale.gen
+# Locale (dots escaped so sed regex doesn't wildcard-match them)
+sed -i 's/^#en_US\.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+sed -i 's/^#pl_PL\.UTF-8 UTF-8/pl_PL.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen
 echo "LANG=$LOCALE" > /etc/locale.conf
 echo "KEYMAP=$KEYMAP" > /etc/vconsole.conf
@@ -108,7 +115,7 @@ echo "$HOSTNAME" > /etc/hostname
 
 # mkinitcpio
 sed -i 's/^MODULES=.*/MODULES=($MKINITCPIO_MODULES)/' /etc/mkinitcpio.conf
-sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf keyboard sd-vconsole block sd-encrypt filesystems fsck)/' /etc/mkinitcpio.conf
+sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboard sd-vconsole block sd-encrypt filesystems fsck)/' /etc/mkinitcpio.conf
 
 # Kernel command line for UKI
 mkdir -p /etc/cmdline.d
