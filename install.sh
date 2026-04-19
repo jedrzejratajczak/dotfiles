@@ -10,18 +10,25 @@ set -euo pipefail
 echo "=== Dotfiles installer ==="
 echo ""
 
-# --- Machine profile (auto-detected) ---
-if ls /sys/class/power_supply/BAT* &>/dev/null; then
-  PROFILE="laptop"
-else
-  PROFILE="desktop"
-fi
+# --- Hardware detection (per component, not per machine) ---
+ls /sys/class/power_supply/BAT* &>/dev/null && HAS_BATTERY=1 || HAS_BATTERY=0
+
 if grep -q GenuineIntel /proc/cpuinfo; then
   UCODE="intel-ucode"
 else
   UCODE="amd-ucode"
 fi
-echo "Detected profile: $PROFILE ($UCODE)"
+
+GPU_INFO=$(lspci -nn | grep -iE "vga|3d|display" || true)
+NET_INFO=$(lspci -nn | grep -iE "network|wireless" || true)
+GPU_NVIDIA=0; echo "$GPU_INFO" | grep -qi "NVIDIA"          && GPU_NVIDIA=1
+GPU_AMD=0;    echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && GPU_AMD=1
+GPU_INTEL=0;  echo "$GPU_INFO" | grep -qi "Intel"           && GPU_INTEL=1
+
+echo "Detected hardware:"
+echo "  ucode:   $UCODE"
+echo "  gpu:     $([ $GPU_NVIDIA = 1 ] && printf 'nvidia ')$([ $GPU_AMD = 1 ] && printf 'amd ')$([ $GPU_INTEL = 1 ] && printf 'intel')"
+echo "  battery: $([ $HAS_BATTERY = 1 ] && echo yes || echo no)"
 echo ""
 
 # --- 1. Packages (official repos) ---
@@ -51,12 +58,15 @@ PACKAGES=(
   flatpak
 )
 
-# Profile-specific packages
-if [ "$PROFILE" = "laptop" ]; then
-  PACKAGES+=(vulkan-radeon sof-firmware tlp)
-elif [ "$PROFILE" = "desktop" ]; then
-  PACKAGES+=(nvidia-open linux-headers)
-fi
+# Hardware-specific packages (driven by detection, not machine profile)
+[ $GPU_AMD = 1 ]     && PACKAGES+=(vulkan-radeon)
+[ $GPU_NVIDIA = 1 ]  && PACKAGES+=(nvidia-open linux-headers)
+[ $GPU_INTEL = 1 ]   && PACKAGES+=(vulkan-intel)
+[ $HAS_BATTERY = 1 ] && PACKAGES+=(tlp)
+# SOF firmware: ~10MB, harmless where unused. Needed on CPUs with
+# integrated audio DSP (Intel Tiger Lake+, AMD Phoenix/Hawk/Strix mobile).
+# Unconditional here to keep the detection surface small.
+PACKAGES+=(sof-firmware)
 
 # Suspend mkinitcpio pacman hooks during bulk install. Without this,
 # every kernel-adjacent package (systemd, mkinitcpio, amd-ucode, linux-
@@ -109,9 +119,11 @@ AUR_PACKAGES=(
 
 AUR_PACKAGES+=(cloudflare-warp-bin)
 
-if [ "$PROFILE" = "desktop" ]; then
-  AUR_PACKAGES+=(mediatek-mt7927-dkms)
-fi
+# WiFi/BT cards needing out-of-tree drivers. MT7921/MT7925 work with
+# in-tree mt79{21,25}e + linux-firmware and don't need anything here.
+case "$NET_INFO" in
+  *MT7927*) AUR_PACKAGES+=(mediatek-mt7927-dkms) ;;
+esac
 
 paru -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 
@@ -218,8 +230,8 @@ done
 # --- 5. System configs (symlinks to dotfiles) ---
 echo "Applying system configs..."
 
-# TLP (laptop only)
-if [ "$PROFILE" = "laptop" ]; then
+# TLP (only on machines with a battery)
+if [ $HAS_BATTERY = 1 ]; then
   sudo cp "$HOME/.dotfiles/tlp/etc/tlp.conf" /etc/tlp.conf
 fi
 
@@ -288,7 +300,7 @@ fi
 # - module.sig_enforce=1 and lockdown=confidentiality would refuse to
 #   load any DKMS module (Arch only signs in-tree modules with an
 #   ephemeral per-build key), which would break mediatek-mt7927-dkms
-#   on the desktop WiFi card and any future DKMS module
+#   (on machines that have MT7927) and any future DKMS module
 # - debugfs=off breaks amdgpu-top, partially breaks powertop, and
 #   blocks ryzenadj MSR access. Lockdown already implied the same.
 sudo tee /etc/cmdline.d/hardening.conf > /dev/null << 'HARDENING'
@@ -472,7 +484,7 @@ sudo systemctl enable docker.socket
 sudo systemctl enable warp-svc
 sudo systemctl start warp-svc 2>/dev/null || echo "  warp-svc start deferred (will auto-start on next boot)"
 
-if [ "$PROFILE" = "laptop" ]; then
+if [ $HAS_BATTERY = 1 ]; then
   sudo systemctl enable tlp
 fi
 

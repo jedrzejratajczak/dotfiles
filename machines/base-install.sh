@@ -49,16 +49,29 @@ TIMEZONE="Europe/Warsaw"
 LOCALE="en_US.UTF-8"
 KEYMAP="pl"
 
-if ls /sys/class/power_supply/BAT* &>/dev/null; then
-    PROFILE="laptop"
-    EXTRA_PKGS=(sof-firmware)
-    MKINITCPIO_MODULES="amdgpu"
-    NET_HINT="WiFi: nmcli device wifi connect <SSID> password <pass>"
-else
-    PROFILE="desktop"
-    EXTRA_PKGS=(nvidia-open)
+# Hardware detection (per component, not per machine profile).
+ls /sys/class/power_supply/BAT* &>/dev/null && HAS_BATTERY=1 || HAS_BATTERY=0
+NET_HINT=$([ $HAS_BATTERY = 1 ] \
+    && echo "WiFi: nmcli device wifi connect <SSID> password <pass>" \
+    || echo "ethernet")
+
+GPU_INFO=$(lspci -nn | grep -iE "vga|3d|display" || true)
+GPU_NVIDIA=0; echo "$GPU_INFO" | grep -qi "NVIDIA"          && GPU_NVIDIA=1
+GPU_AMD=0;    echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && GPU_AMD=1
+GPU_INTEL=0;  echo "$GPU_INFO" | grep -qi "Intel"           && GPU_INTEL=1
+
+# SOF firmware unconditional (~10MB, harmless where unused).
+EXTRA_PKGS=(sof-firmware)
+MKINITCPIO_MODULES=""
+if [ $GPU_NVIDIA = 1 ]; then
+    EXTRA_PKGS+=(nvidia-open)
     MKINITCPIO_MODULES="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
-    NET_HINT="ethernet"
+elif [ $GPU_AMD = 1 ]; then
+    EXTRA_PKGS+=(vulkan-radeon)
+    MKINITCPIO_MODULES="amdgpu"
+elif [ $GPU_INTEL = 1 ]; then
+    EXTRA_PKGS+=(vulkan-intel)
+    MKINITCPIO_MODULES="i915"
 fi
 
 # CPU microcode package based on vendor (hardcoding amd-ucode breaks Intel).
@@ -68,7 +81,7 @@ else
     UCODE="amd-ucode"
 fi
 
-echo "=== Arch Linux base install ($PROFILE) ==="
+echo "=== Arch Linux base install ==="
 echo ""
 echo "Disk:     $DISK"
 echo "Hostname: $HOSTNAME"
@@ -156,7 +169,7 @@ sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect microcode modconf kms keyboar
 # Kernel command line for UKI
 mkdir -p /etc/cmdline.d
 echo "rd.luks.name=${LUKS_UUID}=root root=/dev/mapper/root rw" > /etc/cmdline.d/root.conf
-if [ "$PROFILE" = "desktop" ]; then
+if [ "$GPU_NVIDIA" = "1" ]; then
   # Belt-and-suspenders: nvidia-utils ships a modprobe conf with
   # modeset=1, but setting it at cmdline ensures early KMS even if a
   # later package ever strips that modprobe drop-in.
