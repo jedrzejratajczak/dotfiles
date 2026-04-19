@@ -260,11 +260,17 @@ fi
 # KSPP-recommended runtime hardening (https://kspp.github.io/Recommended_Settings).
 # slab_nomerge / init_on_*: mitigate heap exploits. page_alloc.shuffle:
 # randomize freelists. randomize_kstack_offset: per-syscall kstack ASLR.
-# vsyscall=none: remove legacy vsyscall page. lockdown=confidentiality +
-# module.sig_enforce=1: with Secure Boot enrolled, only signed modules
-# load and root can't read kernel memory. debugfs=off: hide the debug fs.
+# vsyscall=none: remove legacy vsyscall page.
+#
+# Intentionally OMITTED (break DKMS / userspace tools on this setup):
+# - module.sig_enforce=1 and lockdown=confidentiality would refuse to
+#   load any DKMS module (Arch only signs in-tree modules with an
+#   ephemeral per-build key), which would break mediatek-mt7927-dkms
+#   on the desktop WiFi card and any future DKMS module
+# - debugfs=off breaks amdgpu-top, partially breaks powertop, and
+#   blocks ryzenadj MSR access. Lockdown already implied the same.
 sudo tee /etc/cmdline.d/hardening.conf > /dev/null << 'HARDENING'
-slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none lockdown=confidentiality module.sig_enforce=1 debugfs=off
+slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none
 HARDENING
 
 # DMA protection (Thunderbolt/PCIe). iommu=pt is intentionally absent:
@@ -417,7 +423,8 @@ BOOTHOOK
 
 # (sbctl package ships /usr/share/libalpm/hooks/zz-sbctl.hook which auto-
 # signs EFI binaries on any boot/* or vmlinuz update, so no custom hook
-# is needed here.)
+# is needed here.) Clean up the old custom hook if a prior install wrote it.
+sudo rm -f /etc/pacman.d/hooks/95-sbctl-sign.hook
 
 # Privacy: disable core dumps
 echo "  Disabling core dumps..."
