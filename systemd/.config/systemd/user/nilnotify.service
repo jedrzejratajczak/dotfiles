@@ -2,7 +2,6 @@
 Description=Nilnotify notification daemon
 PartOf=graphical-session.target
 After=graphical-session.target
-Requisite=graphical-session.target
 
 [Service]
 Type=simple
