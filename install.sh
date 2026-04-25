@@ -640,6 +640,12 @@ for uki in /boot/EFI/Linux/*.efi; do
   [ -f "$uki" ] && sudo sbctl sign -s "$uki"
 done
 sudo sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
+# Also sign the EFI fallback path. bootctl install copies systemd-boot
+# to /boot/EFI/BOOT/BOOTX64.EFI as the spec-mandated removable-media
+# fallback; firmware that ignores the NVRAM entry (Framework, Macs,
+# anything after an NVRAM reset) boots this copy instead, and an
+# unsigned fallback bricks boot the moment Secure Boot is enabled.
+[ -f /boot/EFI/BOOT/BOOTX64.EFI ] && sudo sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
 # Non-fatal: sbctl verify returns non-zero if any file is unsigned, but
 # that's informational here, not a reason to abort the whole installer.
 sudo sbctl verify || true
