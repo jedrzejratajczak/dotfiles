@@ -507,10 +507,17 @@ fi
 
 # Enable user services here (not in .zprofile): greetd → uwsm → Hyprland
 # never spawns a zsh login shell, so zprofile would never run on first
-# boot. --now also covers re-runs inside an active Hyprland session.
+# boot. Start them too, but only when graphical-session.target is
+# already active — on a first install we're in a TTY and starting
+# waybar/awww/hypridle/hyprpolkitagent/nilnotify there fails (no
+# Wayland socket, no Hyprland IPC) and aborts install.sh via set -e.
 systemctl --user daemon-reload
-systemctl --user enable --now waybar hypridle hyprpolkitagent \
-  pipewire pipewire-pulse wireplumber nilnotify awww
+USER_SERVICES=(waybar hypridle hyprpolkitagent
+  pipewire pipewire-pulse wireplumber nilnotify awww)
+systemctl --user enable "${USER_SERVICES[@]}"
+if systemctl --user is-active --quiet graphical-session.target; then
+  systemctl --user start "${USER_SERVICES[@]}"
+fi
 
 # --- 8. Shell and groups ---
 echo "Setting default shell and groups..."
