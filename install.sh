@@ -281,8 +281,10 @@ fi
 # Replace existing timeout line or append if missing (sed's in-place
 # substitution is a no-op on absent lines, which would silently leave
 # the loader at base-install's default of 4s).
-if [ -f /boot/loader/loader.conf ]; then
-  if grep -q '^timeout' /boot/loader/loader.conf; then
+# sudo test: /boot is root-only (umask=0077 from base-install), so a
+# bare `[ -f ]` as the user fails silently and the whole block skips.
+if sudo test -f /boot/loader/loader.conf; then
+  if sudo grep -q '^timeout' /boot/loader/loader.conf; then
     sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
   else
     echo "timeout 0" | sudo tee -a /boot/loader/loader.conf > /dev/null
@@ -334,7 +336,9 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw --force enable
 
-# Encrypted DNS (DNS-over-TLS via systemd-resolved)
+# Encrypted DNS (DNS-over-TLS via systemd-resolved). resolved must be
+# running before resolv.conf is pointed at its stub, or DNS dies on the
+# next NM reload until reboot.
 echo "  Configuring encrypted DNS..."
 sudo mkdir -p /etc/systemd/resolved.conf.d
 sudo tee /etc/systemd/resolved.conf.d/dns-over-tls.conf > /dev/null << 'DNS'
@@ -345,12 +349,14 @@ DNSOverTLS=true
 DNSSEC=allow-downgrade
 Domains=~.
 DNS
+sudo systemctl enable --now systemd-resolved
 sudo ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 sudo mkdir -p /etc/NetworkManager/conf.d
 sudo tee /etc/NetworkManager/conf.d/dns.conf > /dev/null << 'NMDNS'
 [main]
 dns=systemd-resolved
 NMDNS
+sudo systemctl reload NetworkManager 2>/dev/null || true
 
 # Kernel hardening (sysctl)
 echo "  Applying kernel hardening..."
@@ -410,6 +416,7 @@ net.ipv6.conf.default.accept_source_route = 0
 net.ipv4.conf.all.log_martians = 1
 net.ipv4.conf.default.log_martians = 1
 SYSCTL
+sudo sysctl --system >/dev/null
 
 # PAM login delay (4s between attempts) + faillock (lockout after N).
 # pam_faillock is already wired into /etc/pam.d/system-auth by the
@@ -490,7 +497,6 @@ sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 sudo systemctl enable ufw
 sudo systemctl enable usbguard
 sudo systemctl enable usbguard-dbus.service
-sudo systemctl enable systemd-resolved
 sudo systemctl enable docker.socket
 sudo systemctl enable warp-svc
 sudo systemctl start warp-svc 2>/dev/null || echo "  warp-svc start deferred (will auto-start on next boot)"
@@ -499,7 +505,12 @@ if [ $HAS_BATTERY = 1 ]; then
   sudo systemctl enable tlp
 fi
 
-# User services are enabled on first login via .zprofile
+# Enable user services here (not in .zprofile): greetd → uwsm → Hyprland
+# never spawns a zsh login shell, so zprofile would never run on first
+# boot. --now also covers re-runs inside an active Hyprland session.
+systemctl --user daemon-reload
+systemctl --user enable --now waybar hypridle hyprpolkitagent \
+  pipewire pipewire-pulse wireplumber nilnotify awww
 
 # --- 8. Shell and groups ---
 echo "Setting default shell and groups..."
