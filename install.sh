@@ -202,6 +202,12 @@ backup_if_exists ~/.config/uwsm/env
 backup_if_exists ~/.config/uwsm/env-hyprland
 backup_if_exists ~/.config/systemd/user/nilnotify.service
 backup_if_exists ~/.config/systemd/user/awww.service
+# Hyprland writes a default ~/.config/hypr/hyprland.conf on first launch.
+# If the user logged into a Hyprland session between pacman -S and stow
+# (e.g. via greetd, or a re-run after first boot), that autogen file
+# blocks stow on the entire hyprland package — stow refuses to clobber a
+# non-symlink and aborts every link in the package on a single conflict.
+backup_if_exists ~/.config/hypr/hyprland.conf
 if [ -d "$BACKUP_DIR" ]; then
     echo "  Backups saved to $BACKUP_DIR"
 fi
@@ -217,6 +223,7 @@ rm -f ~/.config/qt6ct/qt6ct.conf
 # Avoid rm -rf here so any user-added templates survive a re-run.
 rm -f ~/.config/uwsm/env ~/.config/uwsm/env-hyprland
 rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.service
+rm -f ~/.config/hypr/hyprland.conf
 
 # --no-folding creates individual file symlinks rather than folding a
 # package into one dir symlink. This keeps runtime writes (systemd
@@ -224,7 +231,11 @@ rm -f ~/.config/systemd/user/nilnotify.service ~/.config/systemd/user/awww.servi
 # silently ending up in the repo via a directory symlink.
 for dir in "${STOW_PACKAGES[@]}"; do
     echo "  Stowing $dir..."
-    stow -v --no-folding "$dir" 2>&1 | grep -v "^$" || true
+    # No `|| true` here: stow exits non-zero on conflict (and aborts the
+    # whole package), so we want set -e to fire. Otherwise a single
+    # missed entry in the conflict list above silently leaves a package
+    # un-stowed and the rest of the install marches on, none the wiser.
+    stow --no-folding "$dir"
 done
 
 # --- 5. System configs (symlinks to dotfiles) ---
