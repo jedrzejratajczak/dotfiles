@@ -39,6 +39,13 @@ for _ in $(seq 30); do
     sleep 1
 done
 
+# Refresh archlinux-keyring on the live ISO before pacstrap. ISOs are
+# snapshotted monthly while packagers' keys rotate continuously, so any
+# package signed by a key newer than the ISO fails with "signature is
+# unknown trust" / "invalid or corrupted package (PGP signature)".
+echo "Refreshing archlinux-keyring..."
+pacman -Sy --needed --noconfirm archlinux-keyring
+
 DISK="/dev/nvme0n1"
 ESP="${DISK}p1"
 LUKS_PART="${DISK}p2"
