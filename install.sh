@@ -620,9 +620,16 @@ sudo pacman -S --needed --noconfirm sbctl tpm2-tss
 if [ ! -f /var/lib/sbctl/keys/PK/PK.key ]; then
   echo "Creating Secure Boot keys..."
   sudo sbctl create-keys
-  sudo sbctl enroll-keys -m
 else
   echo "  Secure Boot keys already exist, skipping creation"
+fi
+# enroll-keys needs the firmware in Setup Mode (factory keys cleared in
+# BIOS). On a first install that's not the case yet, so don't let a
+# nonzero exit kill the rest of the script — TPM enrollment and the
+# post-install instructions still need to run. The Post-install block
+# already tells the user to reboot, clear keys in BIOS, and re-run.
+if ! sudo sbctl enroll-keys -m; then
+  echo "  enroll-keys deferred (BIOS not in Setup Mode — see Post-install below)"
 fi
 
 # Regenerate UKIs (picks up silent boot / iommu / hardening cmdline drop-ins)
