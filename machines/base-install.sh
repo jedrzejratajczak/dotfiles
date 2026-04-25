@@ -98,6 +98,19 @@ echo "WARNING: This will WIPE $DISK completely."
 read -p "Continue? [y/N] " confirm
 [[ "$confirm" == [yY] ]] || exit 1
 
+# Idempotent cleanup so a re-run after a mid-install failure works.
+# A previous attempt may have left /mnt mounted, swap on, or the LUKS
+# mapper open — in which case sgdisk reports "kernel still using old
+# partition table" and luksFormat fails with "Device or resource busy".
+swapoff -a 2>/dev/null || true
+umount -R /mnt 2>/dev/null || true
+for m in /dev/mapper/*; do
+    [ "$m" = "/dev/mapper/control" ] && continue
+    [ -e "$m" ] || continue
+    cryptsetup close "$(basename "$m")" 2>/dev/null || true
+done
+partprobe "$DISK" 2>/dev/null || true
+
 # --- 1. Partitioning ---
 echo "[1/9] Partitioning..."
 sgdisk --zap-all "$DISK"
