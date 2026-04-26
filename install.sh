@@ -655,10 +655,21 @@ echo "=== Installation complete ==="
 echo ""
 
 # --- TPM2 auto-unlock (requires Secure Boot already enabled in BIOS) ---
-# PCR set per systemd-cryptenroll(1): "bound to some combination of PCRs
-# 7, 11, and 14 (if shim/MOK is used). ... not advisable to use PCRs such
-# as 0 and 2, since the program code they cover should already be covered
-# indirectly through the certificates measured into PCR 7."
+# PCR 7 only — covers Secure Boot state + enrolled keys (db/KEK/PK).
+# Combined with sbctl-signed UKIs and a BIOS supervisor password it
+# already enforces "only a UKI signed by our key can boot", which is
+# the practical guarantee TPM-sealing buys here.
+#
+# Sealing to PCR 11 (UKI measurement) sounds stricter but is broken by
+# construction in this script: mkinitcpio -P at line ~636 writes a new
+# UKI to /boot before we get here, but systemd-cryptenroll seals to the
+# *runtime* PCR 11, which still reflects the OLD UKI loaded at the
+# current boot. Next boot loads the new UKI, PCR 11 mismatches, TPM
+# unseal fails, and the user falls back to the LUKS passphrase prompt
+# defeating the whole point. Same regression fires on every kernel
+# update for the same reason. Signed PCR policy (--tpm2-public-key)
+# would fix it properly but adds a key-management surface; PCR 7 alone
+# is the right tradeoff for a single-user laptop with locked firmware.
 if sbctl status 2>/dev/null | grep -q "Secure Boot.*[Ee]nabled"; then
   LUKS_DEV=$(awk '/rd.luks.name/ {match($0, /rd.luks.name=([a-f0-9-]+)/, m); print m[1]}' /etc/cmdline.d/root.conf 2>/dev/null || true)
   if [ -n "$LUKS_DEV" ]; then
@@ -667,7 +678,7 @@ if sbctl status 2>/dev/null | grep -q "Secure Boot.*[Ee]nabled"; then
       echo "  TPM2 already enrolled, skipping"
     else
       echo "Enrolling TPM2 key (you will be asked for your LUKS password, then set a TPM PIN)..."
-      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+11 --tpm2-with-pin=yes "$LUKS_DEVICE"
+      sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=yes "$LUKS_DEVICE"
       echo "TPM2 auto-unlock configured (PIN required on boot)."
     fi
   fi
