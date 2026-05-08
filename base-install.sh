@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-[ "$EUID" -eq 0 ] || exit 1
-[ "$(uname -m)" = "x86_64" ] || exit 1
-[ -d /sys/firmware/efi ] || exit 1
-command -v pacstrap >/dev/null || exit 1
+[ "$EUID" -eq 0 ]
+[ "$(uname -m)" = "x86_64" ]
+[ -d /sys/firmware/efi ]
+command -v pacstrap >/dev/null
 
 DISK="/dev/nvme0n1"
 ESP="${DISK}p1"

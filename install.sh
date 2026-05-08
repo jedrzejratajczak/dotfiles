@@ -36,6 +36,7 @@ PACKAGES=(
   flatpak
   sbctl tpm2-tss
   sof-firmware
+  fwupd
 )
 
 echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open linux-headers)
@@ -68,16 +69,14 @@ paru -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 flatpak install -y --noninteractive flathub io.gitlab.librewolf-community
 
-cd ~/.dotfiles || exit 1
+cd ~/.dotfiles
 
 STOW_PACKAGES=(
     zsh git kitty hyprland rofi yazi mpv
     waybar gtk matugen uwsm awww systemd
 )
 
-for dir in "${STOW_PACKAGES[@]}"; do
-    stow --no-folding "$dir"
-done
+stow --no-folding "${STOW_PACKAGES[@]}"
 
 [ $HAS_BATTERY = 1 ] && sudo cp "$HOME/.dotfiles/tlp/etc/tlp.conf" /etc/tlp.conf
 
@@ -97,8 +96,8 @@ sudo cp "$HOME/.dotfiles/logind/etc/systemd/logind.conf.d/power-key.conf" /etc/s
 sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
 
 echo "quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3" | sudo tee /etc/cmdline.d/silent.conf > /dev/null
-echo "slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none" | sudo tee /etc/cmdline.d/hardening.conf > /dev/null
-echo "amd_iommu=force_isolation intel_iommu=on iommu.passthrough=0 iommu.strict=1" | sudo tee /etc/cmdline.d/iommu.conf > /dev/null
+echo "slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none random.trust_cpu=off random.trust_bootloader=off" | sudo tee /etc/cmdline.d/hardening.conf > /dev/null
+echo "amd_iommu=force_isolation intel_iommu=on iommu.passthrough=0 iommu.strict=1 efi=disable_early_pci_dma" | sudo tee /etc/cmdline.d/iommu.conf > /dev/null
 grep -q AuthenticAMD /proc/cpuinfo && echo "mem_encrypt=on" | sudo tee /etc/cmdline.d/mem-encrypt.conf > /dev/null
 sudo chmod 600 /etc/cmdline.d/*.conf
 
@@ -158,6 +157,14 @@ net.ipv6.conf.all.accept_source_route = 0
 net.ipv6.conf.default.accept_source_route = 0
 net.ipv4.conf.all.log_martians = 1
 net.ipv4.conf.default.log_martians = 1
+net.ipv4.tcp_rfc1337 = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+dev.tty.ldisc_autoload = 0
+dev.tty.legacy_tiocsti = 0
+vm.unprivileged_userfaultfd = 0
+vm.mmap_rnd_bits = 32
+vm.mmap_rnd_compat_bits = 16
+kernel.core_pattern = |/bin/false
 SYSCTL
 sudo sysctl --system >/dev/null
 
@@ -174,6 +181,8 @@ if [ ! -f /etc/usbguard/rules.conf ] || [ ! -s /etc/usbguard/rules.conf ]; then
   sudo sh -c 'usbguard generate-policy > /etc/usbguard/rules.conf'
   sudo chmod 600 /etc/usbguard/rules.conf
 fi
+sudo sed -i "s|^IPCAllowedUsers=.*|IPCAllowedUsers=$USER|" /etc/usbguard/usbguard-daemon.conf
+sudo sed -i 's|^IPCAllowedGroups=.*|IPCAllowedGroups=|' /etc/usbguard/usbguard-daemon.conf
 
 sudo tee /etc/NetworkManager/conf.d/privacy.conf > /dev/null << 'NMPRIVACY'
 [device]
@@ -212,6 +221,26 @@ Storage=none
 ProcessSizeMax=0
 COREDUMP
 
+sudo tee /etc/modprobe.d/blacklist-rare.conf > /dev/null << 'BLACKLIST'
+install dccp /bin/false
+install sctp /bin/false
+install rds /bin/false
+install tipc /bin/false
+install cramfs /bin/false
+install freevxfs /bin/false
+install jffs2 /bin/false
+install hfs /bin/false
+install hfsplus /bin/false
+install udf /bin/false
+install firewire-core /bin/false
+install firewire-ohci /bin/false
+install firewire-sbp2 /bin/false
+install vivid /bin/false
+BLACKLIST
+
+sudo sed -i 's/^UMASK\s.*/UMASK 077/' /etc/login.defs
+sudo sed -i 's/^HOME_MODE\s.*/HOME_MODE 0700/' /etc/login.defs
+
 sudo mkdir -p /etc/docker
 sudo tee /etc/docker/daemon.json > /dev/null << 'DOCKERD'
 {
@@ -226,7 +255,7 @@ sudo sed -i -E '/^[[:space:]]*[^#]*[[:space:]]+\/(tmp|dev\/shm)[[:space:]]/d' /e
 echo 'tmpfs   /tmp     tmpfs   nosuid,nodev,noexec,size=50%,mode=1777   0   0' | sudo tee -a /etc/fstab > /dev/null
 echo 'tmpfs   /dev/shm tmpfs   nosuid,nodev,noexec                      0   0' | sudo tee -a /etc/fstab > /dev/null
 
-sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket warp-svc
+sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket warp-svc fwupd-refresh.timer
 sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 sudo systemctl start warp-svc 2>/dev/null || true
 [ $HAS_BATTERY = 1 ] && sudo systemctl enable tlp
@@ -258,21 +287,20 @@ ZRAM
 [ -f ~/.config/hypr/monitors.conf ] || echo "monitor = , preferred, auto, auto" > ~/.config/hypr/monitors.conf
 
 cp -n ~/.dotfiles/wallpapers/* ~/Pictures/Wallpapers/ 2>/dev/null || true
-matugen image ~/Pictures/Wallpapers/p0.webp -m dark -t scheme-tonal-spot
+WALLPAPER=$(find ~/Pictures/Wallpapers -maxdepth 1 -name '*.webp' -print -quit 2>/dev/null)
+[ -n "$WALLPAPER" ] && matugen image "$WALLPAPER" -m dark -t scheme-tonal-spot
 
 [ -f /var/lib/sbctl/keys/PK/PK.key ] || sudo sbctl create-keys
-sudo sbctl enroll-keys -m || true
+sudo sbctl enroll-keys || true
 
 sudo mkinitcpio -P
 
-for uki in /boot/EFI/Linux/*.efi; do
-  [ -f "$uki" ] && sudo sbctl sign -s "$uki"
+for f in /boot/EFI/Linux/*.efi /boot/EFI/systemd/systemd-bootx64.efi /boot/EFI/BOOT/BOOTX64.EFI; do
+  [ -f "$f" ] && sudo sbctl sign -s "$f"
 done
-sudo sbctl sign -s /boot/EFI/systemd/systemd-bootx64.efi
-[ -f /boot/EFI/BOOT/BOOTX64.EFI ] && sudo sbctl sign -s /boot/EFI/BOOT/BOOTX64.EFI
 sudo sbctl verify || true
 
-if sbctl status 2>/dev/null | grep -q "Secure Boot.*[Ee]nabled"; then
+if sbctl status --json 2>/dev/null | jq -e '.secure_boot' >/dev/null; then
   LUKS_DEV=$(sudo awk 'match($0, /rd.luks.name=([a-f0-9-]+)/, m) {print m[1]}' /etc/cmdline.d/root.conf)
   LUKS_DEVICE="/dev/disk/by-uuid/$LUKS_DEV"
   if ! sudo cryptsetup luksDump "$LUKS_DEVICE" | grep -q systemd-tpm2; then
