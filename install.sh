@@ -114,6 +114,8 @@ FallbackDNS=9.9.9.9#dns.quad9.net
 DNSOverTLS=true
 DNSSEC=allow-downgrade
 Domains=~.
+LLMNR=no
+MulticastDNS=no
 DNS
 sudo systemctl enable --now systemd-resolved
 sudo ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
@@ -185,6 +187,8 @@ ipv6.dhcp-send-hostname=0
 ipv6.addr-gen-mode=1
 ipv6.ip6-privacy=2
 ipv6.dhcp-duid=stable-uuid
+connection.llmnr=0
+connection.mdns=0
 NMPRIVACY
 
 sudo chmod 700 /boot
@@ -207,6 +211,20 @@ sudo tee /etc/systemd/coredump.conf.d/disable.conf > /dev/null << 'COREDUMP'
 Storage=none
 ProcessSizeMax=0
 COREDUMP
+
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json > /dev/null << 'DOCKERD'
+{
+  "userns-remap": "default",
+  "no-new-privileges": true,
+  "icc": false,
+  "live-restore": true
+}
+DOCKERD
+
+sudo sed -i -E '/^[[:space:]]*[^#]*[[:space:]]+\/(tmp|dev\/shm)[[:space:]]/d' /etc/fstab
+echo 'tmpfs   /tmp     tmpfs   nosuid,nodev,noexec,size=50%,mode=1777   0   0' | sudo tee -a /etc/fstab > /dev/null
+echo 'tmpfs   /dev/shm tmpfs   nosuid,nodev,noexec                      0   0' | sudo tee -a /etc/fstab > /dev/null
 
 sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket warp-svc
 sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
