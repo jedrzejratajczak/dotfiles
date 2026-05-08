@@ -39,12 +39,12 @@ PACKAGES=(
   zsh stow rofi yazi mpv wl-clipboard wl-clip-persist
   hyprland hyprlock hypridle hyprsunset hyprpolkitagent hyprpicker
   imagemagick brightnessctl swayosd pavucontrol gpu-screen-recorder
-  nwg-displays greetd cage satty waybar kitty
+  nwg-displays satty waybar kitty
   neovim playerctl grim slurp
   pipewire pipewire-alsa pipewire-jack pipewire-pulse wireplumber
   xdg-desktop-portal-hyprland xdg-desktop-portal-gtk
   zram-generator
-  noto-fonts ttf-cascadia-code-nerd
+  noto-fonts noto-fonts-emoji ttf-cascadia-code-nerd
   papirus-icon-theme
   uwsm qt6-wayland qt6ct
   eza bat git-delta lazygit
@@ -113,7 +113,7 @@ fi
 echo "Installing AUR packages..."
 AUR_PACKAGES=(
   grimblast-git zsh-theme-powerlevel10k-git pinta
-  nilgreeter-bin nilnotify-bin nilpower-bin nilwall-bin nilwidgets-bin
+  nilnotify-bin nilpower-bin nilwall-bin nilwidgets-bin
   localsend-bin lazydocker-bin
 )
 
@@ -204,9 +204,9 @@ backup_if_exists ~/.config/systemd/user/nilnotify.service
 backup_if_exists ~/.config/systemd/user/awww.service
 # Hyprland writes a default ~/.config/hypr/hyprland.conf on first launch.
 # If the user logged into a Hyprland session between pacman -S and stow
-# (e.g. via greetd, or a re-run after first boot), that autogen file
-# blocks stow on the entire hyprland package — stow refuses to clobber a
-# non-symlink and aborts every link in the package on a single conflict.
+# (e.g. on a re-run after the first boot), that autogen file blocks stow
+# on the entire hyprland package — stow refuses to clobber a non-symlink
+# and aborts every link in the package on a single conflict.
 backup_if_exists ~/.config/hypr/hyprland.conf
 if [ -d "$BACKUP_DIR" ]; then
     echo "  Backups saved to $BACKUP_DIR"
@@ -246,17 +246,23 @@ if [ $HAS_BATTERY = 1 ]; then
   sudo cp "$HOME/.dotfiles/tlp/etc/tlp.conf" /etc/tlp.conf
 fi
 
-# greetd (must copy, not symlink — greetd has ProtectHome=yes)
-sudo rm -f /etc/greetd/config.toml
-sudo cp ~/.dotfiles/greetd/etc/greetd/config.toml /etc/greetd/config.toml
-
-# nilgreeter wrapper
-sudo tee /usr/local/bin/nilgreeter-wrapper > /dev/null << 'WRAPPER'
-#!/bin/sh
-export XKB_DEFAULT_LAYOUT=pl
-exec cage -s -- /usr/bin/nilgreeter 2>/dev/null
-WRAPPER
-sudo chmod +x /usr/local/bin/nilgreeter-wrapper
+# Autologin on tty1 via agetty drop-in (no greeter — LUKS+TPM2+PIN at
+# boot is the cold-boot gate; a greeter password would only protect
+# against an attacker who knows the TPM PIN but not the user password.
+# hyprlock and sudo still prompt for the user password where it matters.
+# Hyprland is launched from ~/.zprofile via uwsm on tty1. Pattern is
+# straight from Arch wiki "Getty" — ExecStart= empty line clears the
+# template's value (systemd appends list-typed directives by default),
+# then the second ExecStart= sets ours. Type=simple (default is idle)
+# starts the unit immediately rather than waiting for boot jobs to
+# settle, which trims a noticeable chunk off boot-to-Hyprland time.
+sudo mkdir -p /etc/systemd/system/getty@tty1.service.d
+sudo tee /etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << EOF
+[Service]
+ExecStart=
+ExecStart=-/usr/bin/agetty --noreset --noclear --autologin $USER - \${TERM}
+Type=simple
+EOF
 
 # /etc/issue
 sudo cp "$HOME/.dotfiles/issue/etc/issue" /etc/issue
@@ -264,18 +270,6 @@ sudo cp "$HOME/.dotfiles/issue/etc/issue" /etc/issue
 # logind (power button config, drop-in)
 sudo mkdir -p /etc/systemd/logind.conf.d
 sudo cp "$HOME/.dotfiles/logind/etc/systemd/logind.conf.d/power-key.conf" /etc/systemd/logind.conf.d/power-key.conf
-
-# Greeter wallpaper (nilgreeter reads /usr/share/nilgreeter/background.gif)
-sudo mkdir -p /usr/share/nilgreeter
-if [ -f ~/.dotfiles/wallpapers/waterfall.gif ]; then
-  sudo cp ~/.dotfiles/wallpapers/waterfall.gif /usr/share/nilgreeter/background.gif
-  echo "  Greeter wallpaper set from waterfall.gif"
-elif [ -f ~/.dotfiles/wallpapers/p0.webp ]; then
-  sudo cp ~/.dotfiles/wallpapers/p0.webp /usr/share/nilgreeter/background.gif
-  echo "  Greeter wallpaper set from p0.webp (static fallback)"
-else
-  echo "  WARNING: No wallpaper found — copy a GIF to /usr/share/nilgreeter/background.gif"
-fi
 
 # Boot optimization: timeout 0 skips systemd-boot menu entirely.
 # Replace existing timeout line or append if missing (sed's in-place
@@ -491,7 +485,7 @@ COREDUMP
 echo "Enabling services..."
 
 # System services
-sudo systemctl enable greetd
+sudo systemctl enable getty@tty1.service
 sudo systemctl enable NetworkManager
 sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 sudo systemctl enable ufw
@@ -505,10 +499,10 @@ if [ $HAS_BATTERY = 1 ]; then
   sudo systemctl enable tlp
 fi
 
-# Enable user services here (not in .zprofile): greetd → uwsm → Hyprland
-# never spawns a zsh login shell, so zprofile would never run on first
-# boot. Start them too, but only when graphical-session.target is
-# already active — on a first install we're in a TTY and starting
+# Enable user services here (not in .zprofile) — services should be
+# enabled exactly once at install time, not re-enabled on every login.
+# Start them too, but only when graphical-session.target is already
+# active — on a first install we're in a TTY and starting
 # waybar/awww/hypridle/hyprpolkitagent/nilnotify there fails (no
 # Wayland socket, no Hyprland IPC) and aborts install.sh via set -e.
 systemctl --user daemon-reload

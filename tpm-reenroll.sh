@@ -13,7 +13,13 @@ DEV="/dev/disk/by-uuid/$LUKS_DEV"
 echo "Wiping existing TPM2 slot on $DEV..."
 sudo systemd-cryptenroll --wipe-slot=tpm2 "$DEV"
 
-echo "Enrolling new TPM2 key with PCR 7+11 + PIN..."
-sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7+11 --tpm2-with-pin=yes "$DEV"
+# PCR 7 only — matches install.sh enrollment. PCR 11 (UKI measurement)
+# would invalidate the binding on every mkinitcpio -P (kernel/initramfs
+# update), forcing a re-enroll each time. A stable PCR 11 binding
+# requires --tpm2-public-key (signed PCR policy); without that, 7+11 is
+# brittle by construction. See systemd-cryptenroll(1) "TPM2 PCRs and
+# policies".
+echo "Enrolling new TPM2 key with PCR 7 + PIN..."
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=yes "$DEV"
 
 echo "Done. Reboot to verify auto-unlock with new PIN."
