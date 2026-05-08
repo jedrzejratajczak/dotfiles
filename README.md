@@ -25,11 +25,7 @@ ping -c 3 archlinux.org
 Install:
 
 ```bash
-# If you have the install pendrive (with bootstrap.sh):
-mount /dev/sdX1 /mnt && bash /mnt/bootstrap.sh
-
-# Otherwise, fetch base-install directly:
-curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/machines/base-install.sh
+curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/base-install.sh
 chmod +x base-install.sh
 ./base-install.sh
 ```
