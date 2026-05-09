@@ -60,7 +60,6 @@ AUR_PACKAGES=(
   grimblast-git zsh-theme-powerlevel10k-git pinta
   nilnotify-bin nilpower-bin nilwall-bin nilwidgets-bin
   localsend-bin lazydocker-bin
-  cloudflare-warp-bin
 )
 
 case "$NET_INFO" in
@@ -272,9 +271,8 @@ sudo sed -i -E '/^[[:space:]]*[^#]*[[:space:]]+\/(tmp|dev\/shm)[[:space:]]/d' /e
 echo 'tmpfs   /tmp     tmpfs   nosuid,nodev,noexec,size=50%,mode=1777   0   0' | sudo tee -a /etc/fstab > /dev/null
 echo 'tmpfs   /dev/shm tmpfs   nosuid,nodev,noexec                      0   0' | sudo tee -a /etc/fstab > /dev/null
 
-sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket warp-svc fwupd-refresh.timer chronyd.service
+sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket fwupd-refresh.timer chronyd.service
 sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
-sudo systemctl start warp-svc 2>/dev/null || true
 [ $HAS_BATTERY = 1 ] && sudo systemctl enable tlp
 
 systemctl --user daemon-reload

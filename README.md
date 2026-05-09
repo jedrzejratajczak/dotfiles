@@ -58,7 +58,6 @@ sudo reboot
 ```bash
 cd ~/.dotfiles
 ./install.sh
-warp-cli registration new && warp-cli connect
 ```
 
 ## After BIOS update
