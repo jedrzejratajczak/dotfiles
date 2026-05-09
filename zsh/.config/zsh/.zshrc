@@ -42,12 +42,13 @@ HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
 [[ -d ${HISTFILE:h} ]] || mkdir -p ${HISTFILE:h}
 HISTSIZE=50000
 SAVEHIST=50000
-setopt appendhistory sharehistory hist_ignore_all_dups hist_ignore_space
+setopt appendhistory sharehistory hist_ignore_all_dups hist_ignore_space hist_reduce_blanks
+setopt extended_glob interactive_comments no_beep
 
 # --- Key bindings ---
 bindkey -e
-bindkey '^[[A' history-search-backward
-bindkey '^[[B' history-search-forward
+bindkey '^[[A' up-line-or-search
+bindkey '^[[B' down-line-or-search
 
 # --- Completions ---
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
