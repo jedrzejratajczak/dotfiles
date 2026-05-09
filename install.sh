@@ -237,6 +237,13 @@ Storage=none
 ProcessSizeMax=0
 COREDUMP
 
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo tee /etc/systemd/journald.conf.d/limits.conf > /dev/null << 'JOURNAL'
+[Journal]
+Storage=persistent
+SystemMaxUse=500M
+JOURNAL
+
 sudo tee /etc/modprobe.d/blacklist-rare.conf > /dev/null << 'BLACKLIST'
 install dccp /bin/false
 install sctp /bin/false
@@ -319,6 +326,6 @@ if sbctl status --json 2>/dev/null | jq -e '.secure_boot' >/dev/null; then
   LUKS_DEV=$(sudo awk 'match($0, /rd.luks.name=([a-f0-9-]+)/, m) {print m[1]}' /etc/cmdline.d/root.conf)
   LUKS_DEVICE="/dev/disk/by-uuid/$LUKS_DEV"
   if ! sudo cryptsetup luksDump "$LUKS_DEVICE" | grep -q systemd-tpm2; then
-    sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=yes "$LUKS_DEVICE"
+    sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=yes --tpm2-measure-pcr=yes "$LUKS_DEVICE"
   fi
 fi
