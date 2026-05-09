@@ -1,26 +1,10 @@
-# Session-wide environment variables for Wayland
-# Sourced by UWSM before compositor starts — visible to all session services
-
-# Qt: prefer Wayland, fall back to X11
 export QT_QPA_PLATFORM="wayland;xcb"
 export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 export QT_QPA_PLATFORMTHEME=qt6ct
-
-# GTK: prefer Wayland, fall back to X11
 export GDK_BACKEND="wayland,x11"
-
-# Electron apps (VS Code, Discord, Signal): native Wayland
 export ELECTRON_OZONE_PLATFORM_HINT=auto
-
-# Clutter framework
 export CLUTTER_BACKEND=wayland
-
-# Cursor
 export XCURSOR_SIZE=24
 export XCURSOR_THEME=Adwaita
-
-# Theme
 export GTK_THEME=Adwaita:dark
-
-# XDG
 export XDG_SCREENSHOTS_DIR="$HOME/Pictures/Screenshots"

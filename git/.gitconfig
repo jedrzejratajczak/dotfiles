@@ -29,7 +29,14 @@
 	enabled = true
 
 [diff]
+	algorithm = histogram
 	colorMoved = default
+
+[branch]
+	sort = -committerdate
+
+[transfer]
+	fsckObjects = true
 
 [alias]
 	st = status
