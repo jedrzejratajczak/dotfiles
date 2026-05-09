@@ -37,14 +37,17 @@ PACKAGES=(
   sbctl tpm2-tss
   sof-firmware
   fwupd
+  chrony
+  steam
 )
 
-echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open linux-headers)
-echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && PACKAGES+=(vulkan-radeon)
-echo "$GPU_INFO" | grep -qi "Intel"           && PACKAGES+=(vulkan-intel)
+echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open linux-headers lib32-nvidia-utils)
+echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && PACKAGES+=(vulkan-radeon lib32-vulkan-radeon)
+echo "$GPU_INFO" | grep -qi "Intel"           && PACKAGES+=(vulkan-intel lib32-vulkan-intel)
 [ $HAS_BATTERY = 1 ]                          && PACKAGES+=(tlp)
 
-sudo pacman -S --needed --noconfirm "${PACKAGES[@]}"
+sudo sed -i '/^#\[multilib\]$/,/^#Include/ s/^#//' /etc/pacman.conf
+sudo pacman -Syu --needed --noconfirm "${PACKAGES[@]}"
 
 if ! command -v paru &>/dev/null; then
   rm -rf /tmp/paru
@@ -67,7 +70,7 @@ esac
 paru -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install -y --noninteractive flathub io.gitlab.librewolf-community
+flatpak install -y --noninteractive flathub io.gitlab.librewolf-community dev.vencord.Vesktop
 
 cd ~/.dotfiles
 
@@ -96,7 +99,7 @@ sudo cp "$HOME/.dotfiles/logind/etc/systemd/logind.conf.d/power-key.conf" /etc/s
 sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
 
 echo "quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3" | sudo tee /etc/cmdline.d/silent.conf > /dev/null
-echo "slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none random.trust_cpu=off random.trust_bootloader=off" | sudo tee /etc/cmdline.d/hardening.conf > /dev/null
+echo "slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none random.trust_cpu=off random.trust_bootloader=off debugfs=off lockdown=confidentiality" | sudo tee /etc/cmdline.d/hardening.conf > /dev/null
 echo "amd_iommu=force_isolation intel_iommu=on iommu.passthrough=0 iommu.strict=1 efi=disable_early_pci_dma" | sudo tee /etc/cmdline.d/iommu.conf > /dev/null
 grep -q AuthenticAMD /proc/cpuinfo && echo "mem_encrypt=on" | sudo tee /etc/cmdline.d/mem-encrypt.conf > /dev/null
 sudo chmod 600 /etc/cmdline.d/*.conf
@@ -124,6 +127,20 @@ sudo tee /etc/NetworkManager/conf.d/dns.conf > /dev/null << 'NMDNS'
 dns=systemd-resolved
 NMDNS
 sudo systemctl reload NetworkManager 2>/dev/null || true
+
+sudo systemctl disable --now systemd-timesyncd 2>/dev/null || true
+sudo tee /etc/chrony.conf > /dev/null << 'CHRONY'
+server time.cloudflare.com iburst nts
+server nts.netnod.se iburst nts
+server time.dfm.dk iburst nts
+minsources 2
+
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+leapsectz right/UTC
+ntsdumpdir /var/lib/chrony
+CHRONY
 
 sudo tee /etc/sysctl.d/99-hardening.conf > /dev/null << 'SYSCTL'
 kernel.kptr_restrict = 2
@@ -255,7 +272,7 @@ sudo sed -i -E '/^[[:space:]]*[^#]*[[:space:]]+\/(tmp|dev\/shm)[[:space:]]/d' /e
 echo 'tmpfs   /tmp     tmpfs   nosuid,nodev,noexec,size=50%,mode=1777   0   0' | sudo tee -a /etc/fstab > /dev/null
 echo 'tmpfs   /dev/shm tmpfs   nosuid,nodev,noexec                      0   0' | sudo tee -a /etc/fstab > /dev/null
 
-sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket warp-svc fwupd-refresh.timer
+sudo systemctl enable getty@tty1.service NetworkManager ufw usbguard usbguard-dbus.service docker.socket warp-svc fwupd-refresh.timer chronyd.service
 sudo systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 sudo systemctl start warp-svc 2>/dev/null || true
 [ $HAS_BATTERY = 1 ] && sudo systemctl enable tlp
