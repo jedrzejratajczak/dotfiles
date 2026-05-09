@@ -15,34 +15,25 @@ LUKS2, Secure Boot, TPM2 + PIN, ufw, USBGuard, DNS-over-TLS, kernel hardening, D
 Connect to Wi-Fi:
 
 ```bash
-iwctl
-# station wlan0 scan
-# station wlan0 connect "SSID"
-# exit
+iwctl station wlan0 scan
+iwctl station wlan0 connect "SSID"
 ping -c 3 archlinux.org
 ```
 
 Install:
 
 ```bash
-curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/base-install.sh
-chmod +x base-install.sh
-./base-install.sh
+git clone https://github.com/jedrzejratajczak/dotfiles
+./dotfiles/base-install.sh
+poweroff
 ```
-
-Then `poweroff`.
 
 ### 3. First boot
-
-Connect to Wi-Fi:
-
-```bash
-nmcli device wifi connect "SSID" password "pass"
-```
 
 Install:
 
 ```bash
+nmcli device wifi connect "SSID" password "pass"
 cd ~/.dotfiles
 ./install.sh
 sudo reboot
@@ -56,12 +47,11 @@ sudo reboot
 ### 5. Second boot
 
 ```bash
-cd ~/.dotfiles
-./install.sh
+~/.dotfiles/install.sh
 ```
 
 ## After BIOS update
 
 ```bash
-cd ~/.dotfiles && ./tpm-reenroll.sh
+~/.dotfiles/tpm-reenroll.sh
 ```
