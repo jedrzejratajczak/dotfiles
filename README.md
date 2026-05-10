@@ -35,8 +35,6 @@ nmcli device wifi connect "SSID" password "pass"
 ~/.dotfiles/install.sh
 ```
 
-Base setup + Secure Boot key enrollment in one shot (`install.sh` detects Setup Mode and runs `sbctl enroll-keys --microsoft` automatically).
-
 ### 4. BIOS
 
 - Secure Boot: **Enabled**
