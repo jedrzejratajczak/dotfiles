@@ -21,5 +21,4 @@ sudo systemd-cryptenroll \
     --tpm2-device=auto \
     --tpm2-pcrs=7 \
     --tpm2-with-pin=yes \
-    --tpm2-measure-pcr=yes \
     "$LUKS_DEVICE"
