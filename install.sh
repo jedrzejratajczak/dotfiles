@@ -72,6 +72,10 @@ flatpak install -y --noninteractive flathub io.gitlab.librewolf-community dev.ve
 
 command -v claude &>/dev/null || curl -fsSL https://claude.ai/install.sh | bash
 
+mise use -g node@lts
+rustup default stable
+rustup component add rust-src
+
 cd ~/.dotfiles
 
 STOW_PACKAGES=(
