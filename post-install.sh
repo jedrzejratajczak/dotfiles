@@ -1,26 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-STATUS=$(sudo sbctl status --json)
-
-if echo "$STATUS" | jq -e '.setup_mode == true' >/dev/null; then
-  sudo sbctl enroll-keys
-  sudo sbctl verify || true
-  echo
-  echo "Keys enrolled. Next steps:"
-  echo "  1. Reboot, enter UEFI."
-  echo "  2. Enable Secure Boot."
-  echo "  3. Boot back, re-run this script for TPM enrollment."
-  exit 0
-fi
-
-if ! echo "$STATUS" | jq -e '.secure_boot == true' >/dev/null; then
-  echo "[!] UEFI is neither in Setup Mode nor has Secure Boot enabled."
-  echo "    To start Secure Boot setup:"
-  echo "      1. Reboot, enter UEFI."
-  echo "      2. Clear / Erase / Reset Platform Keys."
-  echo "      3. Save & boot back to OS."
-  echo "      4. Re-run this script."
+if ! sudo sbctl status --json | jq -e '.secure_boot == true' >/dev/null; then
+  echo "[!] Secure Boot is not enabled in UEFI."
+  echo "    Enable it in firmware setup, then re-run this script."
   exit 1
 fi
 

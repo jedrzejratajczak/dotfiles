@@ -104,7 +104,7 @@ sudo cp "$HOME/.dotfiles/logind/etc/systemd/logind.conf.d/power-key.conf" /etc/s
 sudo sed -i 's/^timeout.*/timeout 0/' /boot/loader/loader.conf
 
 echo "quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3" | sudo tee /etc/cmdline.d/silent.conf > /dev/null
-echo "slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none random.trust_cpu=off random.trust_bootloader=off debugfs=off lockdown=confidentiality" | sudo tee /etc/cmdline.d/hardening.conf > /dev/null
+echo "slab_nomerge init_on_alloc=1 init_on_free=1 page_alloc.shuffle=1 randomize_kstack_offset=on vsyscall=none random.trust_cpu=off random.trust_bootloader=off debugfs=off" | sudo tee /etc/cmdline.d/hardening.conf > /dev/null
 echo "amd_iommu=force_isolation intel_iommu=on iommu.passthrough=0 iommu.strict=1 efi=disable_early_pci_dma" | sudo tee /etc/cmdline.d/iommu.conf > /dev/null
 grep -q AuthenticAMD /proc/cpuinfo && echo "mem_encrypt=on" | sudo tee /etc/cmdline.d/mem-encrypt.conf > /dev/null
 sudo chmod 600 /etc/cmdline.d/*.conf
@@ -251,20 +251,34 @@ SystemMaxUse=500M
 JOURNAL
 
 sudo tee /etc/modprobe.d/blacklist-rare.conf > /dev/null << 'BLACKLIST'
-install dccp /bin/false
-install sctp /bin/false
-install rds /bin/false
-install tipc /bin/false
-install cramfs /bin/false
-install freevxfs /bin/false
-install jffs2 /bin/false
-install hfs /bin/false
-install hfsplus /bin/false
-install udf /bin/false
-install firewire-core /bin/false
-install firewire-ohci /bin/false
-install firewire-sbp2 /bin/false
-install vivid /bin/false
+blacklist dccp
+blacklist sctp
+blacklist rds
+blacklist tipc
+blacklist cramfs
+blacklist freevxfs
+blacklist jffs2
+blacklist hfs
+blacklist hfsplus
+blacklist udf
+blacklist firewire-core
+blacklist firewire-ohci
+blacklist firewire-sbp2
+blacklist vivid
+install dccp /bin/true
+install sctp /bin/true
+install rds /bin/true
+install tipc /bin/true
+install cramfs /bin/true
+install freevxfs /bin/true
+install jffs2 /bin/true
+install hfs /bin/true
+install hfsplus /bin/true
+install udf /bin/true
+install firewire-core /bin/true
+install firewire-ohci /bin/true
+install firewire-sbp2 /bin/true
+install vivid /bin/true
 BLACKLIST
 
 sudo sed -i 's/^UMASK\s.*/UMASK 077/' /etc/login.defs
@@ -323,3 +337,8 @@ WALLPAPER=$(find ~/Pictures/Wallpapers -maxdepth 1 -name '*.webp' -print -quit 2
 sudo mkinitcpio -P
 
 sudo find /boot -type f \( -name '*.efi' -o -iname 'BOOTX64.EFI' -o -name 'vmlinuz-linux' \) -exec sbctl sign -s {} \;
+
+if sudo sbctl status --json | jq -e '.setup_mode == true' >/dev/null; then
+  sudo sbctl enroll-keys --microsoft
+  sudo sbctl sign-all
+fi

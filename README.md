@@ -9,6 +9,7 @@ LUKS2, Secure Boot, TPM2 + PIN, ufw, USBGuard, DNS-over-TLS, kernel hardening, D
 - Set Supervisor Password
 - Secure Boot: **Disabled**
 - USB Boot: **Enabled**
+- Clear / Erase / Reset Platform Keys (board-specific menu name — puts firmware into Setup Mode)
 
 ### 2. Live USB
 
@@ -34,22 +35,14 @@ nmcli device wifi connect "SSID" password "pass"
 ~/.dotfiles/install.sh
 ```
 
+Base setup + Secure Boot key enrollment in one shot (`install.sh` detects Setup Mode and runs `sbctl enroll-keys --microsoft` automatically).
+
 ### 4. BIOS
 
-- Clear / Erase / Reset Platform Keys (board-specific menu name)
+- Secure Boot: **Enabled**
 - USB Boot: **Disabled**
 
-### 5. Second boot — enroll Secure Boot keys
-
-```bash
-~/.dotfiles/post-install.sh
-```
-
-### 6. BIOS
-
-- Secure Boot: **Enabled**
-
-### 7. Third boot — enroll TPM
+### 5. Second boot — enroll TPM
 
 ```bash
 ~/.dotfiles/post-install.sh
