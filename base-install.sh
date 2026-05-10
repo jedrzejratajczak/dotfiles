@@ -106,6 +106,7 @@ chmod 600 /etc/cmdline.d/*.conf
 
 cat > /etc/mkinitcpio.d/linux.preset << 'PRESET'
 ALL_kver="/boot/vmlinuz-linux"
+ALL_microcode=(/boot/*-ucode.img)
 
 PRESETS=('default' 'fallback')
 

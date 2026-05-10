@@ -29,8 +29,6 @@ bash base-install.sh
 
 ### 3. First boot
 
-Install:
-
 ```bash
 nmcli device wifi connect "SSID" password "pass"
 ~/.dotfiles/install.sh
@@ -38,13 +36,23 @@ nmcli device wifi connect "SSID" password "pass"
 
 ### 4. BIOS
 
-- Secure Boot: **Enabled**
+- Clear / Erase / Reset Platform Keys (board-specific menu name)
 - USB Boot: **Disabled**
 
-### 5. Second boot
+### 5. Second boot — enroll Secure Boot keys
 
 ```bash
-~/.dotfiles/install.sh
+~/.dotfiles/post-install.sh
+```
+
+### 6. BIOS
+
+- Secure Boot: **Enabled**
+
+### 7. Third boot — enroll TPM
+
+```bash
+~/.dotfiles/post-install.sh
 ```
 
 ## After BIOS update

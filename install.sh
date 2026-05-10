@@ -30,7 +30,7 @@ PACKAGES=(
   docker docker-compose
   fzf jq less xdg-utils xdg-user-dirs
   gst-plugin-pipewire libpulse libnotify
-  linux-firmware "$UCODE" efibootmgr
+  linux-firmware linux-headers "$UCODE" efibootmgr
   github-cli
   obs-studio kdenlive
   ufw usbguard awww matugen code
@@ -41,7 +41,7 @@ PACKAGES=(
   chrony
 )
 
-echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open linux-headers)
+echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open)
 echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && PACKAGES+=(vulkan-radeon)
 echo "$GPU_INFO" | grep -qi "Intel"           && PACKAGES+=(vulkan-intel)
 [ $HAS_BATTERY = 1 ]                          && PACKAGES+=(tlp)
@@ -319,19 +319,7 @@ WALLPAPER=$(find ~/Pictures/Wallpapers -maxdepth 1 -name '*.webp' -print -quit 2
 [ -n "$WALLPAPER" ] && matugen image "$WALLPAPER" -m dark -t scheme-tonal-spot
 
 [ -f /var/lib/sbctl/keys/PK/PK.key ] || sudo sbctl create-keys
-sudo sbctl enroll-keys || true
 
 sudo mkinitcpio -P
 
-for f in /boot/EFI/Linux/*.efi /boot/EFI/systemd/systemd-bootx64.efi /boot/EFI/BOOT/BOOTX64.EFI; do
-  [ -f "$f" ] && sudo sbctl sign -s "$f"
-done
-sudo sbctl verify || true
-
-if sbctl status --json 2>/dev/null | jq -e '.secure_boot' >/dev/null; then
-  LUKS_DEV=$(sudo awk 'match($0, /rd.luks.name=([a-f0-9-]+)/, m) {print m[1]}' /etc/cmdline.d/root.conf)
-  LUKS_DEVICE="/dev/disk/by-uuid/$LUKS_DEV"
-  if ! sudo cryptsetup luksDump "$LUKS_DEVICE" | grep -q systemd-tpm2; then
-    sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=yes --tpm2-measure-pcr=yes "$LUKS_DEVICE"
-  fi
-fi
+sudo find /boot -type f \( -name '*.efi' -o -iname 'BOOTX64.EFI' -o -name 'vmlinuz-linux' \) -exec sbctl sign -s {} \;
