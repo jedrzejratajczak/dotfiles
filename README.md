@@ -23,8 +23,8 @@ ping -c 3 archlinux.org
 Install:
 
 ```bash
-git clone https://github.com/jedrzejratajczak/dotfiles
-./dotfiles/base-install.sh
+curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/base-install.sh
+bash base-install.sh
 poweroff
 ```
 
