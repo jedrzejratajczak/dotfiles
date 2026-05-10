@@ -63,9 +63,12 @@ alias y='yazi'
 
 # --- Path ---
 typeset -U path
-export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
 export EDITOR=nvim
 export VISUAL=nvim
+
+# --- mise (polyglot version manager) ---
+command -v mise &>/dev/null && eval "$(mise activate zsh)"
 
 # --- Local overrides (machine-specific, not tracked in git) ---
 [[ -f ${ZDOTDIR}/local.zsh ]] && source ${ZDOTDIR}/local.zsh

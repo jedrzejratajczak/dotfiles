@@ -26,6 +26,7 @@ PACKAGES=(
   papirus-icon-theme
   uwsm qt6-wayland qt6ct
   eza bat git-delta lazygit
+  mise rustup
   docker docker-compose
   fzf jq less xdg-utils xdg-user-dirs
   gst-plugin-pipewire libpulse libnotify
@@ -38,15 +39,13 @@ PACKAGES=(
   sof-firmware
   fwupd
   chrony
-  steam
 )
 
-echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open linux-headers lib32-nvidia-utils)
-echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && PACKAGES+=(vulkan-radeon lib32-vulkan-radeon)
-echo "$GPU_INFO" | grep -qi "Intel"           && PACKAGES+=(vulkan-intel lib32-vulkan-intel)
+echo "$GPU_INFO" | grep -qi "NVIDIA"          && PACKAGES+=(nvidia-open linux-headers)
+echo "$GPU_INFO" | grep -qiE "AMD|ATI|Radeon" && PACKAGES+=(vulkan-radeon)
+echo "$GPU_INFO" | grep -qi "Intel"           && PACKAGES+=(vulkan-intel)
 [ $HAS_BATTERY = 1 ]                          && PACKAGES+=(tlp)
 
-sudo sed -i '/^#\[multilib\]$/,/^#Include/ s/^#//' /etc/pacman.conf
 sudo pacman -Syu --needed --noconfirm "${PACKAGES[@]}"
 
 if ! command -v paru &>/dev/null; then
@@ -69,7 +68,9 @@ esac
 paru -S --needed --noconfirm "${AUR_PACKAGES[@]}"
 
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-flatpak install -y --noninteractive flathub io.gitlab.librewolf-community dev.vencord.Vesktop
+flatpak install -y --noninteractive flathub io.gitlab.librewolf-community dev.vencord.Vesktop com.heroicgameslauncher.hgl com.valvesoftware.Steam
+
+command -v claude &>/dev/null || curl -fsSL https://claude.ai/install.sh | bash
 
 cd ~/.dotfiles
 
