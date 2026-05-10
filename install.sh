@@ -80,7 +80,7 @@ cd ~/.dotfiles
 
 STOW_PACKAGES=(
     zsh git kitty hyprland rofi yazi mpv
-    waybar gtk matugen uwsm awww systemd
+    waybar gtk matugen uwsm awww systemd claude
 )
 
 stow --no-folding "${STOW_PACKAGES[@]}"
