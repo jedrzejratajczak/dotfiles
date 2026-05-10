@@ -25,7 +25,6 @@ Install:
 ```bash
 curl -LO https://raw.githubusercontent.com/jedrzejratajczak/dotfiles/main/base-install.sh
 bash base-install.sh
-poweroff
 ```
 
 ### 3. First boot
@@ -34,9 +33,7 @@ Install:
 
 ```bash
 nmcli device wifi connect "SSID" password "pass"
-cd ~/.dotfiles
-./install.sh
-sudo reboot
+~/.dotfiles/install.sh
 ```
 
 ### 4. BIOS
