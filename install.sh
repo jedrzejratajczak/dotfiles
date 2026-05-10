@@ -48,6 +48,9 @@ echo "$GPU_INFO" | grep -qi "Intel"           && PACKAGES+=(vulkan-intel)
 
 sudo pacman -Syu --needed --noconfirm "${PACKAGES[@]}"
 
+rustup default stable
+rustup component add rust-src
+
 if ! command -v paru &>/dev/null; then
   rm -rf /tmp/paru
   git clone https://aur.archlinux.org/paru.git /tmp/paru
@@ -73,8 +76,6 @@ flatpak install -y --noninteractive flathub io.gitlab.librewolf-community dev.ve
 command -v claude &>/dev/null || curl -fsSL https://claude.ai/install.sh | bash
 
 mise use -g node@lts
-rustup default stable
-rustup component add rust-src
 
 cd ~/.dotfiles
 
